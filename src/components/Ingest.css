@@ -1,0 +1,192 @@
+body {
+    margin: 20px;
+    height: 90%;
+    font-family: Lato,'Helvetica Neue',Arial,Helvetica,sans-serif;
+}
+
+.ui.table td {
+    padding: 0em .5em;
+    text-align: inherit;
+}
+
+.ui.selection.dropdown.error {
+    border-color: #e00b0b;
+}
+
+.ui.compact.negative.message {
+    background-color: #fff6f6;
+    color: #9f3a38;
+    border: 1px solid red;
+}
+
+.ui.segment {
+    border: 1px solid rgb(155 193 230 / 71%);
+}
+
+video {
+    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    max-height: 360px;
+    max-width: 640px;
+}
+
+.virtual_segment {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.ingest_segment {
+    display: flex;
+    align-items: center;
+    padding: .8rem .5rem;
+    flex-wrap:wrap;
+    max-width: 700px;
+    /*min-width: 470px;*/
+}
+
+.stream_segment {
+    max-width: 600px;
+}
+
+.ui.dropdown .menu>.disabled.item {
+    opacity: .99!important;
+}
+
+.ingest_segment > .menu,
+.ingest_segment >.input {
+    margin: .2rem .5rem !important;
+}
+.ingest_segment .menu:nth-child(2) {
+    flex: 1 0 auto;
+}
+.videos_segment {
+    flex: 1 0 auto;
+    display: flex;
+}
+
+.video-wrapper {
+    display: flex;
+    background: #000;
+    padding: 1.6em;
+    flex: 1 0 100%;
+    transition: .2s all linear;
+
+}
+.virtual_segment--chat-open .video-wrapper{
+    flex: 1 0 calc(100% - 400px);
+}
+.chat-wrapper {
+    flex: 0 0 400px;
+    padding: 0 10px 10px 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.ui.selection.dropdown .menu {
+    max-height: 30rem;
+}
+
+.talk {
+    border: 1px solid yellow;
+}
+
+.mirror {
+    -webkit-transform: scaleX(-1);
+    transform: scaleX(-1);
+}
+
+.hidden {
+    display: none;
+}
+
+/*.select_device {*/
+/*min-width: 10em!important;*/
+/*}*/
+
+.vumeter {
+    width: 15px;
+    height: 35px;
+    top: 150px;
+    left: 45%;
+    text-align: center;
+    margin-left: 5px;
+    border: 1px solid #a5e4b5;
+}
+
+.vu_box {
+    padding: 0em 0.1em!important;
+}
+
+.cvu {
+    padding: 0.1em 0.2em!important;
+}
+
+.timer {
+    font-size: 3em!important;
+    padding: 0.0em 0.2em!important;
+}
+
+.main_timer {
+    font-size: 5.5em!important;
+    padding: 0.0em 0.2em!important;
+}
+
+.ui.massive.menu {
+    font-size: 1.28571429rem;
+}
+
+.group_list {
+    overflow-y:scroll;
+    top:0px; left:0px;
+    width:100%; height:270px;
+}
+
+.messages_list {
+    overflow-y:scroll;
+    flex: 1 0 auto;
+
+    /* top:0px; left:0px;
+    width:100%; height:400px; */
+}
+
+.disabled_list {
+    overflow-y:scroll;
+    top:0px; left:0px;
+    width:100%; height:70px;
+}
+
+.preview_segment {
+    width: 430px;
+    height: 250px;
+    cursor: pointer!important;
+    background-color: silver!important;
+}
+
+.program_segment {
+    width: 430px;
+    height: 250px;
+    background-color: silver!important;
+}
+
+.segment_conteiner {
+    width: 460px;
+    height: 920px;
+}
+
+.shidur_overlay {
+    font-family: "Liberation Serif";
+    line-height: 1.1285em;
+    position: absolute;
+    right: 50px;
+    color: #FFF;
+    text-align: center;
+    font-size: 20px;
+    background-color: blue;
+    width: auto;
+    padding: 0px 10px;
+    z-index: 2147483647;
+    float: right !important;
+}
