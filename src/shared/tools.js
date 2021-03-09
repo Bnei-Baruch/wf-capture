@@ -12,11 +12,12 @@ export const JNS_SRV = process.env.REACT_APP_JNS_SRV;
 export const JNS_STUN = process.env.REACT_APP_JNS_STUN;
 
 
-export const getConfig = (id) => {
-    console.log("Set config for:" + id);
+export const getConfig = (capture) => {
+    console.log("Set config for:" + capture);
     let config
-    if(id === 'multi') {
+    if(capture === 'multi') {
         config = {
+            capture,
             header: 'MLT Capture',
             main_src: "mltcap",
             backup_src: "mltbackup",
@@ -25,8 +26,10 @@ export const getConfig = (id) => {
             jv_id: 511,
             ja_id: 21,
         }
-    } else {
+    }
+    if(capture === 'single') {
         config = {
+            capture,
             header: 'SDI Capture',
             main_src: "maincap",
             backup_src: "backupcap",
@@ -36,7 +39,7 @@ export const getConfig = (id) => {
             ja_id: 22,
         }
     }
-    config.user = {id: "mltmain", email: "mltmain@bbdomain.org"};
+    config.user = {id: capture, email: capture+"@bbdomain.org"};
     return config
 }
 
@@ -44,7 +47,8 @@ export const newCaptureState = () => {
     let capture_id = "c"+moment().format('x');
     let lid = "c"+(Number(moment().format('x'))+3)
     let startname = moment().format('YYYY-MM-DD_HH-mm-ss');
-    let jsonst = {capture_id, lid, next_part: false, startname};
+    let numprt = {"LESSON_PART": 1, "MEAL": 1,"FRIENDS_GATHERING": 1,"UNKNOWN": 1, "part": 0};
+    let jsonst = {capture_id, lid, next_part: false, startname, numprt};
     jsonst = setDate(jsonst);
     return jsonst
 }

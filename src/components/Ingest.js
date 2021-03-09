@@ -8,7 +8,7 @@ import media from "../shared/media";
 class Ingest extends Component {
 
     state = {
-        config: getConfig('10.66.3.16'),
+        config: getConfig('single'),
         loading: false,
         main_timer: "00:00:00",
         backup_timer: "00:00:00",
