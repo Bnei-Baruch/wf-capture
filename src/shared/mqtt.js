@@ -73,12 +73,12 @@ class MqttMsg {
 
     watch = (callback, stat) => {
         this.mq.on('message',  (topic, data, packet) => {
-            console.debug('[mqtt] Got data on topic: ', topic);
-            if (/workflow/.test(topic)) {
-                this.mq.emit('workflow', JSON.parse(data.toString()));
+            if (/state/.test(topic)) {
+                this.mq.emit('state', JSON.parse(data.toString()));
             } else {
                 let message = stat ? data.toString() : JSON.parse(data.toString());
-                console.debug("[mqtt] message: ", message);
+                if(message.action !== "status")
+                    console.debug("[mqtt] message: ", message, ", on topic: ", topic);
                 callback(message, topic)
             }
         })

@@ -9,7 +9,9 @@ class Ingest extends Component {
 
     state = {
         config: getConfig('single'),
-        loading: false,
+        start_loading: false,
+        next_loading: false,
+        stop_loading: false,
         main_timer: "00:00:00",
         backup_timer: "00:00:00",
         main_online: false,
@@ -75,10 +77,10 @@ class Ingest extends Component {
         if(services) {
             for(let i=0; i<services.length; i++) {
                 if(main_src === src) {
-                    this.setState({main_timer: toHms(services[i].runtime), main_status: services[i].alive});
+                    this.setState({main_timer: toHms(services[i].runtime), main_online: services[i].alive});
                 }
                 if(backup_src === src) {
-                    this.setState({backup_timer: toHms(services[i].runtime), backup_status: services[i].alive});
+                    this.setState({backup_timer: toHms(services[i].runtime), backup_online: services[i].alive});
                 }
             }
         }
@@ -94,14 +96,33 @@ class Ingest extends Component {
         this.setState({ival});
     };
 
+    makeDelay = (key) => {
+        this.setState({[`${key}_loading`]: true});
+        setTimeout(() => {
+            this.setState({[`${key}_loading`]: false});
+        }, 3000);
+    };
+
     getStat = () => {
         mqtt.send("status", false, "exec/service/maincap");
         mqtt.send("status", false, "exec/service/backupcap");
     };
 
+    startCapture = () => {
+        this.makeDelay("start")
+        mqtt.send("start", false, "exec/service/maincap");
+        mqtt.send("start", false, "exec/service/backupcap");
+    };
+
+    stopCapture = () => {
+        this.makeDelay("stop")
+        mqtt.send("stop", false, "exec/service/maincap");
+        mqtt.send("stop", false, "exec/service/backupcap");
+    }
+
 
     render() {
-        const {config,main_online,backup_online,main_timer,backup_timer,loading} = this.state;
+        const {config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading} = this.state;
         if(!config) return
 
         return (
@@ -138,19 +159,19 @@ class Ingest extends Component {
                     <Table.Row>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled={backup_online}
-                                    loading={loading}
+                                    disabled={backup_online || start_loading}
+                                    loading={start_loading}
                                     positive
-                                    onClick={this.encoderExec} >
+                                    onClick={this.startCapture} >
                                 Start
                             </Button>
                         </Table.Cell>
                         <Table.Cell>
                             <Button fluid size='huge'
                                     disabled
-                                    loading={loading}
+                                    loading={next_loading}
                                     primary
-                                    onClick={this.encoderExec} >
+                                    onClick={this.nextPart} >
                                 Next
                             </Button>
                         </Table.Cell>
@@ -162,10 +183,10 @@ class Ingest extends Component {
                         </Table.Cell>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled={!backup_online}
-                                    loading={loading}
+                                    disabled={!backup_online || stop_loading}
+                                    loading={stop_loading}
                                     negative
-                                    onClick={this.encoderExec} >
+                                    onClick={this.stopCapture} >
                                 Stop
                             </Button>
                         </Table.Cell>
