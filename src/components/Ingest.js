@@ -121,6 +121,7 @@ class Ingest extends Component {
         console.log("-- Store line in state: ",jsonst.line);
         // setState();
         // wfdbPost(curline);
+        //FIXME: line should be in WF Database as it was in last version
         if(!recover)
             mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
     };
@@ -142,6 +143,7 @@ class Ingest extends Component {
         mqtt.mq.on('state', data => {
             console.log("[capture] Got state: ", data);
             this.setState({jsonst: data});
+            // Auto set previous preset
             if(data.line) {
                 this.getPresets(true);
             }
