@@ -49,7 +49,7 @@ class MqttMsg {
 
     join = (topic) => {
         console.debug("[mqtt] Subscribe to: ", topic)
-        let options = {qos: 1, nl: true}
+        let options = {qos: 1, nl: false}
         this.mq.subscribe(topic, {...options}, (err) => {
             err && console.error('[mqtt] Error: ', err);
         })
@@ -74,6 +74,7 @@ class MqttMsg {
     watch = (callback, stat) => {
         this.mq.on('message',  (topic, data, packet) => {
             if (/state/.test(topic)) {
+                console.debug("[mqtt] State from topic: ", topic);
                 this.mq.emit('state', JSON.parse(data.toString()));
             } else {
                 let message = stat ? data.toString() : JSON.parse(data.toString());

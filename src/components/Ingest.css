@@ -10,17 +10,23 @@ body {
 }
 
 .ui.selection.dropdown.error {
-    border-color: #e00b0b;
-}
-
-.ui.compact.negative.message {
-    background-color: #fff6f6;
-    color: #9f3a38;
     border: 1px solid red;
 }
 
-.ui.segment {
-    border: 1px solid rgb(155 193 230 / 71%);
+.ui.selection.dropdown {
+    border: 1px solid green;
+}
+
+.ui.compact.negative.message {
+    border: 1px solid red;
+}
+
+.ui.compact.positive.message {
+    border: 1px solid green;
+}
+
+.ui.clearing.segment {
+    border: 1px solid #619bcd;
 }
 
 video {

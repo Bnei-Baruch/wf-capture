@@ -8,7 +8,7 @@ class App extends Component {
   render() {
     return (
         <Fragment>
-          <Ingest />
+          <Ingest capture='single' />
         </Fragment>
     );
   }

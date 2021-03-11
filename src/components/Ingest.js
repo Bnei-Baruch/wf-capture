@@ -2,13 +2,15 @@ import React, { Component } from 'react';
 import {Segment, Button, Table, Message, Header, Dropdown, Divider} from 'semantic-ui-react';
 import './Ingest.css';
 import {getConfig, getData, newCaptureState, streamVisualizer, toHms} from "../shared/tools";
+import moment from "moment";
 import mqtt from "../shared/mqtt";
 import media from "../shared/media";
 
 class Ingest extends Component {
 
     state = {
-        config: getConfig('single'),
+        config: getConfig(this.props.capture),
+        jsonst: {},
         start_loading: false,
         next_loading: false,
         stop_loading: false,
@@ -16,19 +18,111 @@ class Ingest extends Component {
         backup_timer: "00:00:00",
         main_online: false,
         backup_online: false,
+        options: [],
+        preset_value: "",
     };
 
     componentDidMount() {
-        console.log("[capture] New capture state: ", newCaptureState())
-
-        // IT's can be on dropdown click
-        getData(data => console.log("[capture] Get presets: ", data))
+        //this.getPresets();
         this.initMedia();
         this.initMQTT();
     };
 
     componentWillUnmount() {
         clearInterval(this.state.ival);
+    };
+
+    getPresets = (recording) => {
+        // IT's can be on dropdown click
+        const {jsonst} = this.state;
+        getData(data => {
+            console.log("[capture] Get presets: ", data);
+            let names = data;
+            let options = [];
+            for(let i in names.presets) {
+                // Here we iterate dynamic presets
+                if(i === moment().format('YYYY-MM-DD')) {
+                    options.push({text: i, value: i, disabled: true})
+                    let preset = names.presets[i];
+                    for(let i in preset) {
+                        let curpreset = preset[i];
+                        let name = curpreset.name;
+                        let id = curpreset.id;
+                        if(!names.lines[id]) {
+                            continue
+                        }
+                        //let curcontype = names.lines[id].content_type;
+                        //let curcoltype = names.lines[id].collection_type;
+                        // If we want to switch numprt in dynamic preset
+                        // we need logic based on collection_type
+                        //let num = numprt[curcontype];
+                        //let prt = numprt.part;
+                        let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
+                        name = name.replace("yyyy-mm-dd", psdate);
+                        //let name = name.replace("NUM", "n"+num);
+                        //let name = name.replace("PRT", "p"+prt);
+                        options.push({text: name, value: id})
+                    }
+                }
+                // Here we iterate constant presets
+                if(i === "recent") {
+                    options.push({text: i, value: i, disabled: true})
+                    let preset = names.presets[i];
+                    for(let i in preset) {
+                        let curpreset = preset[i];
+                        let name = curpreset.name;
+                        let id = curpreset.id;
+                        let curcontype = names.lines[id].content_type;
+                        //let curcoltype = names.lines[id].collection_type;
+                        let num = jsonst.numprt[curcontype];
+                        let prt = jsonst.numprt.part;
+                        let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
+                        name = name.replace("DATE", psdate);
+                        name = name.replace("NUM", "n"+num);
+                        name = name.replace("PRT", "p"+prt);
+                        options.push({text: name, value: id})
+                    }
+                }
+            }
+            this.setState({names, options});
+            if(recording) {
+                this.setPreset(jsonst.lineid, options, true)
+            }
+        });
+    };
+
+    setPreset = (preset, options, recover) => {
+        console.log("[capture] Set preset: ", preset, options)
+        const {names, jsonst} = this.state;
+        const new_name = options.find(i => i.value === preset).text
+        this.setState({preset_value: preset});
+        let collection_type = names.lines[preset].collection_type;
+        let content_type = names.lines[preset].content_type;
+        let prt = jsonst.numprt.part;
+        let num = jsonst.numprt[content_type];
+        jsonst.stopname = new_name;
+        jsonst.lineid = preset;
+        let line = names.lines[preset];
+        line.content_type = content_type;
+        line.part = (collection_type === "CONGRESS") ? line.part : prt;
+        line.number = (collection_type === "CONGRESS") ? line.number : num;
+        line.holiday = jsonst.ishag;
+        line.capture_date = jsonst.date;
+        line.final_name = new_name;
+        if(content_type === "LESSON_PART") {
+            line.lid = jsonst.lid;
+        }
+        if(jsonst.ishag) {
+            line.hag = jsonst.holidayname;
+            line.week_date = jsonst.weekdate;
+            line.chol_date = jsonst.choldate;
+        }
+        jsonst.line = line;
+        console.log("-- Store line in state: ",jsonst.line);
+        // setState();
+        // wfdbPost(curline);
+        if(!recover)
+            mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
     };
 
     initMQTT = () => {
@@ -45,7 +139,13 @@ class Ingest extends Component {
                 this.onMqttMessage(message, topic);
             }, false)
         })
-        mqtt.mq.on('workflow', data => console.log("[capture] Got state: ", data));
+        mqtt.mq.on('state', data => {
+            console.log("[capture] Got state: ", data);
+            this.setState({jsonst: data});
+            if(data.line) {
+                this.getPresets(true);
+            }
+        });
     };
 
     initMedia = () => {
@@ -109,20 +209,24 @@ class Ingest extends Component {
     };
 
     startCapture = () => {
-        this.makeDelay("start")
+        this.makeDelay("start");
+        let jsonst = newCaptureState();
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        this.setState({jsonst})
         mqtt.send("start", false, "exec/service/maincap");
         mqtt.send("start", false, "exec/service/backupcap");
     };
 
     stopCapture = () => {
-        this.makeDelay("stop")
+        this.makeDelay("stop");
+        this.setState({preset_value: ""})
         mqtt.send("stop", false, "exec/service/maincap");
         mqtt.send("stop", false, "exec/service/backupcap");
     }
 
 
     render() {
-        const {config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading} = this.state;
+        const {config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading,options,preset_value} = this.state;
         if(!config) return
 
         return (
@@ -197,15 +301,16 @@ class Ingest extends Component {
                 <Dropdown
                     fluid
                     className="trim_files_dropdown"
-                    error
+                    error={!preset_value}
                     scrolling={false}
-                    placeholder="--- PRESS START ---"
+                    placeholder={backup_online ? "--- SET PRESET ---" : "--- PRESS START ---"}
                     selection
-                    value
-                    disabled
-                    options={[]}
-                    onChange={(e,{value}) => this.selectFile(value)}
-                    onClick={() => this.getCaptured(this.state.date)}
+                    value={preset_value}
+                    disabled={!backup_online}
+                    options={options}
+                    onChange={(e,{value, options}) => this.setPreset(value, options)}
+                    //onChange={(e,data) => this.setPreset(e,data)}
+                    onClick={this.getPresets}
                 >
                 </Dropdown>
 
