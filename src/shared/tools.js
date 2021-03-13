@@ -45,35 +45,37 @@ export const getConfig = (capture) => {
 
 export const newCaptureState = () => {
     let capture_id = "c"+moment().format('x');
-    let lid = "c"+(Number(moment().format('x'))+3)
-    let startname = moment().format('YYYY-MM-DD_HH-mm-ss');
-    let numprt = {"LESSON_PART": 1, "MEAL": 1,"FRIENDS_GATHERING": 1,"UNKNOWN": 1, "part": 0};
-    let jsonst = {capture_id, lid, next_part: false, startname, numprt};
+    let backup_id = "c"+(Number(moment().format('x'))+3)
+    let start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
+    let jsonst = {backup_id, capture_id, start_name, next_part: false, isRec: true};
     jsonst = setDate(jsonst);
     return jsonst
 }
 
 const setDate = (jsonst) => {
     const {capture_id} = jsonst;
-    let mtime = moment.unix(capture_id.substr(1).slice(0,-3))._d;
-    let curdate = moment.unix(capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
-    jsonst.date = curdate;
-    console.log("-- Set date: "+curdate);
-    let ishag = getHoliday(mtime);
-    jsonst.ishag = ishag;
-    console.log("-- The hag is: "+ishag);
-    if(ishag) {
-        let holidayname = getHolidayname(mtime);
-        jsonst.holidayname = holidayname;
-        let weekdate = getWeekdate(mtime);
+    const d = capture_id.substr(1).slice(0,-3);
+    let mtime = moment.unix(d)._d;
+    let cur_date = moment.unix(d).format('YYYY-MM-DD');
+    console.log("-- Set date: "+cur_date);
+    if(jsonst.date !== cur_date) {
+        jsonst.num_prt = {"LESSON_PART": 1, "MEAL": 1,"FRIENDS_GATHERING": 1,"UNKNOWN": 1, "part": 0};
+        console.log("Set new: ",jsonst.num_prt);
+    }
+    jsonst.date = cur_date;
+    jsonst.req_date = cur_date; //FIXME: We still need this property?
+    jsonst.isHag = getHoliday(mtime);
+    console.log("-- The hag is: "+ jsonst.isHag);
+    if( jsonst.isHag) {
+        jsonst.holidayname = getHolidayname(mtime);
         // This was in old workflow when we set chol date.
         // in MDB it's use for set film_date so we store chol date
         // in onather propery
-        //jsonst.weekdate = weekdate;
-        jsonst.choldate = weekdate
-        jsonst.weekdate = curdate;
-        console.log("Hag name: "+holidayname);
-        console.log("Week date: "+weekdate);
+        //jsonst.weekdate = getWeekdate(mtime);
+        jsonst.choldate = getWeekdate(mtime);
+        jsonst.weekdate = cur_date;
+        console.log("Hag name: "+jsonst.holidayname);
+        console.log("Week date: "+jsonst.choldate);
 
     }
 
@@ -82,8 +84,6 @@ const setDate = (jsonst) => {
     //var reqdate = ishag ? weekdate : curdate;
 
     //TODO: WTF?
-    // let reqdate = curdate;
-    // jsonst.reqdate = reqdate;
     // if(!jsonst.next_part) { setState(); }
     // getNumprt(jsonst.reqdate);
 }

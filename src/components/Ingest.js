@@ -53,10 +53,10 @@ class Ingest extends Component {
                         }
                         //let curcontype = names.lines[id].content_type;
                         //let curcoltype = names.lines[id].collection_type;
-                        // If we want to switch numprt in dynamic preset
+                        // If we want to switch num_prt in dynamic preset
                         // we need logic based on collection_type
-                        //let num = numprt[curcontype];
-                        //let prt = numprt.part;
+                        //let num = num_prt[curcontype];
+                        //let prt = num_prt.part;
                         let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
                         name = name.replace("yyyy-mm-dd", psdate);
                         //let name = name.replace("NUM", "n"+num);
@@ -74,8 +74,8 @@ class Ingest extends Component {
                         let id = curpreset.id;
                         let curcontype = names.lines[id].content_type;
                         //let curcoltype = names.lines[id].collection_type;
-                        let num = jsonst.numprt[curcontype];
-                        let prt = jsonst.numprt.part;
+                        let num = jsonst.num_prt[curcontype];
+                        let prt = jsonst.num_prt.part;
                         let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
                         name = name.replace("DATE", psdate);
                         name = name.replace("NUM", "n"+num);
@@ -86,7 +86,7 @@ class Ingest extends Component {
             }
             this.setState({names, options});
             if(recording) {
-                this.setPreset(jsonst.lineid, options, true)
+                this.setPreset(jsonst.line_id, options, true)
             }
         });
     };
@@ -98,10 +98,10 @@ class Ingest extends Component {
         this.setState({preset_value: preset});
         let collection_type = names.lines[preset].collection_type;
         let content_type = names.lines[preset].content_type;
-        let prt = jsonst.numprt.part;
-        let num = jsonst.numprt[content_type];
-        jsonst.stopname = new_name;
-        jsonst.lineid = preset;
+        let prt = jsonst.num_prt.part;
+        let num = jsonst.num_prt[content_type];
+        jsonst.stop_name = new_name;
+        jsonst.line_id = preset;
         let line = names.lines[preset];
         line.content_type = content_type;
         line.part = (collection_type === "CONGRESS") ? line.part : prt;
@@ -110,7 +110,7 @@ class Ingest extends Component {
         line.capture_date = jsonst.date;
         line.final_name = new_name;
         if(content_type === "LESSON_PART") {
-            line.lid = jsonst.lid;
+            line.lid = jsonst.backup_id;
         }
         if(jsonst.ishag) {
             line.hag = jsonst.holidayname;
@@ -164,7 +164,7 @@ class Ingest extends Component {
                 });
             }
         })
-    }
+    };
 
     attachStream = (stream, i) => {
         let audio = this.refs["a" + i];
@@ -212,9 +212,9 @@ class Ingest extends Component {
 
     startCapture = () => {
         this.makeDelay("start");
-        let jsonst = newCaptureState();
+        let {jsonst} = this.state;
+        jsonst = newCaptureState(jsonst);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        this.setState({jsonst})
         mqtt.send("start", false, "exec/service/maincap");
         mqtt.send("start", false, "exec/service/backupcap");
     };
@@ -224,16 +224,20 @@ class Ingest extends Component {
         this.setState({preset_value: ""})
         mqtt.send("stop", false, "exec/service/maincap");
         mqtt.send("stop", false, "exec/service/backupcap");
-    }
-
+        const {jsonst} = this.state;
+        jsonst.isRec = false;
+        jsonst.next_part = false;
+        jsonst.num_prt.part = 0;
+        if(jsonst.line.collection_type !== "CONGRESS")
+            jsonst.num_prt[jsonst.line.content_type]++;
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+    };
 
     render() {
         const {config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading,options,preset_value} = this.state;
         if(!config) return
 
         return (
-
-
             <Segment textAlign='center' className='stream_segment' compact raised secondary>
                 <Segment clearing>
                 <Header as='h1'>
@@ -325,7 +329,6 @@ class Ingest extends Component {
                 <audio ref="a4" autoPlay controls={false} muted />
 
             </Segment>
-
         );
     }
 }
