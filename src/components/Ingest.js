@@ -32,100 +32,6 @@ class Ingest extends Component {
         clearInterval(this.state.ival);
     };
 
-    getPresets = (recording) => {
-        // IT's can be on dropdown click
-        const {jsonst} = this.state;
-        getData(data => {
-            console.log("[capture] Get presets: ", data);
-            let names = data;
-            let options = [];
-            for(let i in names.presets) {
-                // Here we iterate dynamic presets
-                if(i === moment().format('YYYY-MM-DD')) {
-                    options.push({text: i, value: i, disabled: true})
-                    let preset = names.presets[i];
-                    for(let i in preset) {
-                        let curpreset = preset[i];
-                        let name = curpreset.name;
-                        let id = curpreset.id;
-                        if(!names.lines[id]) {
-                            continue
-                        }
-                        //let curcontype = names.lines[id].content_type;
-                        //let curcoltype = names.lines[id].collection_type;
-                        // If we want to switch num_prt in dynamic preset
-                        // we need logic based on collection_type
-                        //let num = num_prt[curcontype];
-                        //let prt = num_prt.part;
-                        let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
-                        name = name.replace("yyyy-mm-dd", psdate);
-                        //let name = name.replace("NUM", "n"+num);
-                        //let name = name.replace("PRT", "p"+prt);
-                        options.push({text: name, value: id})
-                    }
-                }
-                // Here we iterate constant presets
-                if(i === "recent") {
-                    options.push({text: i, value: i, disabled: true})
-                    let preset = names.presets[i];
-                    for(let i in preset) {
-                        let curpreset = preset[i];
-                        let name = curpreset.name;
-                        let id = curpreset.id;
-                        let curcontype = names.lines[id].content_type;
-                        //let curcoltype = names.lines[id].collection_type;
-                        let num = jsonst.num_prt[curcontype];
-                        let prt = jsonst.num_prt.part;
-                        let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
-                        name = name.replace("DATE", psdate);
-                        name = name.replace("NUM", "n"+num);
-                        name = name.replace("PRT", "p"+prt);
-                        options.push({text: name, value: id})
-                    }
-                }
-            }
-            this.setState({names, options});
-            if(recording) {
-                this.setPreset(jsonst.line_id, options, true)
-            }
-        });
-    };
-
-    setPreset = (preset, options, recover) => {
-        console.log("[capture] Set preset: ", preset, options)
-        const {names, jsonst} = this.state;
-        const new_name = options.find(i => i.value === preset).text
-        this.setState({preset_value: preset});
-        let collection_type = names.lines[preset].collection_type;
-        let content_type = names.lines[preset].content_type;
-        let prt = jsonst.num_prt.part;
-        let num = jsonst.num_prt[content_type];
-        jsonst.stop_name = new_name;
-        jsonst.line_id = preset;
-        let line = names.lines[preset];
-        line.content_type = content_type;
-        line.part = (collection_type === "CONGRESS") ? line.part : prt;
-        line.number = (collection_type === "CONGRESS") ? line.number : num;
-        line.holiday = jsonst.ishag;
-        line.capture_date = jsonst.date;
-        line.final_name = new_name;
-        if(content_type === "LESSON_PART") {
-            line.lid = jsonst.backup_id;
-        }
-        if(jsonst.ishag) {
-            line.hag = jsonst.holidayname;
-            line.week_date = jsonst.weekdate;
-            line.chol_date = jsonst.choldate;
-        }
-        jsonst.line = line;
-        console.log("-- Store line in state: ",jsonst.line);
-        // setState();
-        // wfdbPost(curline);
-        //FIXME: line should be in WF Database as it was in last version
-        if(!recover)
-            mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-    };
-
     initMQTT = () => {
         mqtt.init(this.state.config.user, (data) => {
             console.log("[mqtt] init: ", data);
@@ -144,8 +50,8 @@ class Ingest extends Component {
             console.log("[capture] Got state: ", data);
             this.setState({jsonst: data});
             // Auto set previous preset
-            if(data.line) {
-                this.getPresets(true);
+            if(data.action === "line") {
+                this.getPresets();
             }
         });
     };
@@ -225,12 +131,117 @@ class Ingest extends Component {
         mqtt.send("stop", false, "exec/service/maincap");
         mqtt.send("stop", false, "exec/service/backupcap");
         const {jsonst} = this.state;
+        if(jsonst.line.collection_type !== "CONGRESS")
+            jsonst.num_prt[jsonst.line.content_type]++;
+        jsonst.action = "stop";
         jsonst.isRec = false;
         jsonst.next_part = false;
         jsonst.num_prt.part = 0;
-        if(jsonst.line.collection_type !== "CONGRESS")
-            jsonst.num_prt[jsonst.line.content_type]++;
+        jsonst.line = null;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+    };
+
+    getPresets = () => {
+        // IT's can be on dropdown click
+        const {jsonst} = this.state;
+        getData(data => {
+            console.log("[capture] Get presets: ", data);
+            let names = data;
+            let options = [];
+            for(let i in names.presets) {
+                // Here we iterate dynamic presets
+                if(i === moment().format('YYYY-MM-DD')) {
+                    options.push({text: i, value: i, disabled: true})
+                    let preset = names.presets[i];
+                    for(let i in preset) {
+                        let curpreset = preset[i];
+                        let name = curpreset.name;
+                        let id = curpreset.id;
+                        if(!names.lines[id]) {
+                            continue
+                        }
+                        //let curcontype = names.lines[id].content_type;
+                        //let curcoltype = names.lines[id].collection_type;
+                        // If we want to switch num_prt in dynamic preset
+                        // we need logic based on collection_type
+                        //let num = num_prt[curcontype];
+                        //let prt = num_prt.part;
+                        let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
+                        name = name.replace("yyyy-mm-dd", psdate);
+                        //let name = name.replace("NUM", "n"+num);
+                        //let name = name.replace("PRT", "p"+prt);
+                        options.push({text: name, value: id})
+                    }
+                }
+                // Here we iterate constant presets
+                if(i === "recent") {
+                    options.push({text: i, value: i, disabled: true})
+                    let preset = names.presets[i];
+                    for(let i in preset) {
+                        let curpreset = preset[i];
+                        let name = curpreset.name;
+                        let id = curpreset.id;
+                        let curcontype = names.lines[id].content_type;
+                        //let curcoltype = names.lines[id].collection_type;
+                        let num = jsonst.num_prt[curcontype];
+                        let prt = jsonst.num_prt.part;
+                        let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
+                        name = name.replace("DATE", psdate);
+                        name = name.replace("NUM", "n"+num);
+                        name = name.replace("PRT", "p"+prt);
+                        options.push({text: name, value: id})
+                    }
+                }
+            }
+            this.setState({names, options});
+            if(jsonst.action === "line") {
+                this.setPreset(jsonst.line_id, options)
+            }
+        });
+    };
+
+    setPreset = (preset, options) => {
+        console.log("[capture] Set preset: ", preset, options)
+        const {names, jsonst} = this.state;
+        const new_name = options.find(i => i.value === preset).text
+        this.setState({preset_value: preset});
+        let collection_type = names.lines[preset].collection_type;
+        let content_type = names.lines[preset].content_type;
+        let prt = jsonst.num_prt.part;
+        let num = jsonst.num_prt[content_type];
+        jsonst.stop_name = new_name;
+        jsonst.line_id = preset;
+        let line = names.lines[preset];
+        line.content_type = content_type;
+        line.part = (collection_type === "CONGRESS") ? line.part : prt;
+        line.number = (collection_type === "CONGRESS") ? line.number : num;
+        line.holiday = jsonst.isHag;
+        line.capture_date = jsonst.date;
+        line.final_name = new_name;
+        if(content_type === "LESSON_PART") {
+            line.lid = jsonst.backup_id;
+        }
+        if(jsonst.ishag) {
+            line.hag = jsonst.holidayname;
+            line.week_date = jsonst.weekdate;
+            line.chol_date = jsonst.choldate;
+        }
+        jsonst.line = line;
+        console.log("-- Store line in state: ",jsonst.line);
+        // setState();
+        // wfdbPost(curline);
+        //FIXME: line should be in WF Database as it was in last version
+        if(jsonst.action.match(/^(start|stop)$/)) {
+            jsonst.action = "line";
+            mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        }
+        if(jsonst.action === "line") {
+            console.log("-- Store line in WFDB -- ");
+            const {main_src, backup_src} = this.state.config;
+            const mqtt_msg = {action: "line"};
+            mqtt.send(JSON.stringify(mqtt_msg), false, "workflow/service/" + main_src + "/line");
+            mqtt.send(JSON.stringify(mqtt_msg), false, "workflow/service/" + backup_src + "/line");
+        }
     };
 
     render() {
