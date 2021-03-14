@@ -121,15 +121,19 @@ class Ingest extends Component {
         let {jsonst} = this.state;
         jsonst = newCaptureState(jsonst);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        mqtt.send("start", false, "exec/service/maincap");
-        mqtt.send("start", false, "exec/service/backupcap");
+        setTimeout(() => {
+            mqtt.send("start", false, "exec/service/maincap/sdi");
+            mqtt.send("start", false, "exec/service/backupcap/sdi");
+            console.log("-- Set start in WF -- ");
+            this.setWorkflow("start");
+        }, 1000);
     };
 
     stopCapture = () => {
         this.makeDelay("stop");
         this.setState({preset_value: ""})
-        mqtt.send("stop", false, "exec/service/maincap");
-        mqtt.send("stop", false, "exec/service/backupcap");
+        mqtt.send("stop", false, "exec/service/maincap/sdi");
+        mqtt.send("stop", false, "exec/service/backupcap/sdi");
         const {jsonst} = this.state;
         if(jsonst.line.collection_type !== "CONGRESS")
             jsonst.num_prt[jsonst.line.content_type]++;
@@ -139,6 +143,10 @@ class Ingest extends Component {
         jsonst.num_prt.part = 0;
         jsonst.line = null;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        setTimeout(() => {
+            console.log("-- Set stop in WF -- ");
+            this.setWorkflow("stop");
+        }, 1000);
     };
 
     getPresets = () => {
@@ -236,13 +244,17 @@ class Ingest extends Component {
             mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         }
         if(jsonst.action === "line") {
-            console.log("-- Store line in WFDB -- ");
-            const {main_src, backup_src} = this.state.config;
-            const mqtt_msg = {action: "line"};
-            mqtt.send(JSON.stringify(mqtt_msg), false, "workflow/service/" + main_src + "/line");
-            mqtt.send(JSON.stringify(mqtt_msg), false, "workflow/service/" + backup_src + "/line");
+            console.log("-- Set line in WFDB -- ");
+            this.setWorkflow("line");
         }
     };
+
+    setWorkflow = (action) => {
+        const {main_src, backup_src} = this.state.config;
+        const {capture_id, backup_id} = this.state.jsonst;
+        mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + main_src);
+        mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src);
+    }
 
     render() {
         const {config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading,options,preset_value} = this.state;

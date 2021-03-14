@@ -64,7 +64,8 @@ class MqttMsg {
     }
 
     send = (message, retain, topic) => {
-        //console.debug("[mqtt] Send data on topic: ", topic, message)
+        if(message !== "status")
+            console.debug("[mqtt] Send data on topic: ", topic, message)
         let options = {qos: 1, retain};
         this.mq.publish(topic, message, {...options}, (err) => {
             err && console.error('[mqtt] Error: ',err);
