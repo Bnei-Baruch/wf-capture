@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import {Segment, Button, Table, Message, Header, Dropdown, Divider} from 'semantic-ui-react';
 import './Ingest.css';
-import {getConfig, getData, newCaptureState, streamVisualizer, toHms} from "../shared/tools";
+import {getConfig, getData, newCaptureState, streamVisualizer, toHms, toSeconds} from "../shared/tools";
 import moment from "moment";
 import mqtt from "../shared/mqtt";
 import media from "../shared/media";
@@ -149,64 +149,108 @@ class Ingest extends Component {
         }, 1000);
     };
 
+    startPart = () => {
+        console.log("-- :: START PART :: --");
+        const {jsonst, names} = this.state;
+        jsonst.capture_id  = "c"+moment().format('x');
+        jsonst.start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
+        jsonst.next_part = true;
+        setTimeout(() => {
+            mqtt.send("start", false, "exec/service/maincap/sdi");
+            const {main_src} = this.state.config;
+            const {capture_id} = jsonst;
+            mqtt.send(JSON.stringify({action: "start", id: capture_id}), false, "workflow/service/capture/" + main_src);
+        }, 1000);
+        this.setOptions(jsonst, names)
+    }
+
+    stopPart = () => {
+        const {main_time} = this.state;
+        if (toSeconds(main_time) < 60 && window.confirm("WARNING!!! You going to stop part less then 1 minutes?") !== true) {
+            console.log("It's was mistake");
+            return;
+        }
+        console.log("-- :: STOP PART :: --");
+        const {jsonst} = this.state;
+        jsonst.next_part = true;
+        jsonst.num_prt.part++;
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        this.nextPart();
+        this.makeDelay("stop");
+        mqtt.send("stop", false, "exec/service/maincap/sdi");
+        const {main_src} = this.state.config;
+        const {capture_id} = jsonst;
+        mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src);
+    }
+
+    nextPart = () => {
+        setTimeout(() => {
+            this.state.main_online ? this.nextPart() : this.startPart();
+        }, 5000);
+    }
+
     getPresets = () => {
-        // IT's can be on dropdown click
         const {jsonst} = this.state;
         getData(data => {
             console.log("[capture] Get presets: ", data);
             let names = data;
-            let options = [];
-            for(let i in names.presets) {
-                // Here we iterate dynamic presets
-                if(i === moment().format('YYYY-MM-DD')) {
-                    options.push({text: i, value: i, disabled: true})
-                    let preset = names.presets[i];
-                    for(let i in preset) {
-                        let curpreset = preset[i];
-                        let name = curpreset.name;
-                        let id = curpreset.id;
-                        if(!names.lines[id]) {
-                            continue
-                        }
-                        //let curcontype = names.lines[id].content_type;
-                        //let curcoltype = names.lines[id].collection_type;
-                        // If we want to switch num_prt in dynamic preset
-                        // we need logic based on collection_type
-                        //let num = num_prt[curcontype];
-                        //let prt = num_prt.part;
-                        let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
-                        name = name.replace("yyyy-mm-dd", psdate);
-                        //let name = name.replace("NUM", "n"+num);
-                        //let name = name.replace("PRT", "p"+prt);
-                        options.push({text: name, value: id})
-                    }
-                }
-                // Here we iterate constant presets
-                if(i === "recent") {
-                    options.push({text: i, value: i, disabled: true})
-                    let preset = names.presets[i];
-                    for(let i in preset) {
-                        let curpreset = preset[i];
-                        let name = curpreset.name;
-                        let id = curpreset.id;
-                        let curcontype = names.lines[id].content_type;
-                        //let curcoltype = names.lines[id].collection_type;
-                        let num = jsonst.num_prt[curcontype];
-                        let prt = jsonst.num_prt.part;
-                        let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
-                        name = name.replace("DATE", psdate);
-                        name = name.replace("NUM", "n"+num);
-                        name = name.replace("PRT", "p"+prt);
-                        options.push({text: name, value: id})
-                    }
-                }
-            }
-            this.setState({names, options});
-            if(jsonst.action === "line") {
-                this.setPreset(jsonst.line_id, options)
-            }
+            this.setState({names});
+            this.setOptions(jsonst, names);
         });
     };
+
+    setOptions = (jsonst, names) => {
+        let options = [];
+        for(let i in names.presets) {
+            // Here we iterate dynamic presets
+            if(i === moment().format('YYYY-MM-DD')) {
+                options.push({text: i, value: i, disabled: true})
+                let preset = names.presets[i];
+                for(let i in preset) {
+                    let curpreset = preset[i];
+                    let name = curpreset.name;
+                    let id = curpreset.id;
+                    if(!names.lines[id]) {
+                        continue
+                    }
+                    //let curcontype = names.lines[id].content_type;
+                    //let curcoltype = names.lines[id].collection_type;
+                    // If we want to switch num_prt in dynamic preset
+                    // we need logic based on collection_type
+                    //let num = num_prt[curcontype];
+                    //let prt = num_prt.part;
+                    let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
+                    name = name.replace("yyyy-mm-dd", psdate);
+                    //let name = name.replace("NUM", "n"+num);
+                    //let name = name.replace("PRT", "p"+prt);
+                    options.push({text: name, value: id})
+                }
+            }
+            // Here we iterate constant presets
+            if(i === "recent") {
+                options.push({text: i, value: i, disabled: true})
+                let preset = names.presets[i];
+                for(let i in preset) {
+                    let curpreset = preset[i];
+                    let name = curpreset.name;
+                    let id = curpreset.id;
+                    let curcontype = names.lines[id].content_type;
+                    //let curcoltype = names.lines[id].collection_type;
+                    let num = jsonst.num_prt[curcontype];
+                    let prt = jsonst.num_prt.part;
+                    let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
+                    name = name.replace("DATE", psdate);
+                    name = name.replace("NUM", "n"+num);
+                    name = name.replace("PRT", "p"+prt);
+                    options.push({text: name, value: id})
+                }
+            }
+        }
+        this.setState({options});
+        if(jsonst.action === "line") {
+            this.setPreset(jsonst.line_id, options)
+        }
+    }
 
     setPreset = (preset, options) => {
         console.log("[capture] Set preset: ", preset, options)
@@ -257,8 +301,10 @@ class Ingest extends Component {
     }
 
     render() {
-        const {config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading,options,preset_value} = this.state;
+        const {jsonst,config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading,options,preset_value} = this.state;
         if(!config) return
+
+        const next_button = jsonst.line.content_type === "LESSON_PART" && jsonst.line.collection_type !== "CONGRESS" && !jsonst.next_part
 
         return (
             <Segment textAlign='center' className='stream_segment' compact raised secondary>
@@ -301,10 +347,10 @@ class Ingest extends Component {
                         </Table.Cell>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled
+                                    disabled={next_button}
                                     loading={next_loading}
                                     primary
-                                    onClick={this.nextPart} >
+                                    onClick={this.stopPart} >
                                 Next
                             </Button>
                         </Table.Cell>

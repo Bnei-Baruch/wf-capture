@@ -242,13 +242,13 @@ export const toHms = (totalSec) => {
     return (d > 0 ? d + "d " : "") + (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m) + ":" + (s  < 10 ? "0" + s : s);
 };
 
-export const totalSeconds = (time) => {
+export const toSeconds = (time) => {
     let parts = time.split(':');
     return parts[0] * 3600 + parts[1] * 60 + parts[2];
 };
 
 export const getPercent = (total,current) => {
-    let percent = (100 * totalSeconds(current) / totalSeconds(total)).toFixed(0);
+    let percent = (100 * toSeconds(current) / toSeconds(total)).toFixed(0);
     percent = +percent || 0;
     return percent;
 };
