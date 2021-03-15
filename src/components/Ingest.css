@@ -4,6 +4,32 @@ body {
     font-family: Lato,'Helvetica Neue',Arial,Helvetica,sans-serif;
 }
 
+.ui.dropdown .menu>.disabled.item {
+    text-align: center;
+}
+
+.ui.label {
+    vertical-align: baseline;
+    margin: 0 .14285714em;
+    background-color: #e8e8e8;
+    text-transform: none;
+    font-weight: 700;
+    border: 0 solid transparent;
+    border-radius: .28571429rem;
+    transition: background .1s ease;
+    font-size: larger;
+    display: block;
+    padding: 0px 0px;
+}
+
+.preset {
+    font-size: larger;
+}
+
+.ui.selection.dropdown .menu>.item {
+    font-size: large;
+}
+
 .ui.table td {
     padding: 0em .5em;
     text-align: inherit;

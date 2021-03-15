@@ -51,6 +51,7 @@ class Ingest extends Component {
             this.setState({jsonst: data});
             // Auto set previous preset
             if(data.action === "line") {
+                this.setState({preset_value: data.line_id});
                 this.getPresets();
             }
         });
@@ -117,6 +118,7 @@ class Ingest extends Component {
     };
 
     startCapture = () => {
+        console.log("-- :: START CAPTURE :: --");
         this.makeDelay("start");
         let {jsonst} = this.state;
         jsonst = newCaptureState(jsonst);
@@ -130,6 +132,7 @@ class Ingest extends Component {
     };
 
     stopCapture = () => {
+        console.log("-- :: STOP CAPTURE :: --");
         this.makeDelay("stop");
         this.setState({preset_value: ""})
         mqtt.send("stop", false, "exec/service/maincap/sdi");
@@ -152,34 +155,33 @@ class Ingest extends Component {
     startPart = () => {
         console.log("-- :: START PART :: --");
         const {jsonst, names} = this.state;
-        jsonst.capture_id  = "c"+moment().format('x');
+        const {main_src} = this.state.config;
+        jsonst.capture_id = "c"+moment().format('x');
         jsonst.start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
         jsonst.next_part = true;
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/maincap/sdi");
-            const {main_src} = this.state.config;
-            const {capture_id} = jsonst;
-            mqtt.send(JSON.stringify({action: "start", id: capture_id}), false, "workflow/service/capture/" + main_src);
+            mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src);
         }, 1000);
         this.setOptions(jsonst, names)
     }
 
     stopPart = () => {
-        const {main_time} = this.state;
-        if (toSeconds(main_time) < 60 && window.confirm("WARNING!!! You going to stop part less then 1 minutes?") !== true) {
+        const {main_timer} = this.state;
+        if (toSeconds(main_timer) < 60 && window.confirm("WARNING!!! You going to stop part less then 1 minutes?") !== true) {
             console.log("It's was mistake");
             return;
         }
         console.log("-- :: STOP PART :: --");
         const {jsonst} = this.state;
+        const {main_src} = this.state.config;
+        const {capture_id} = jsonst;
+        this.makeDelay("next");
+        this.nextPart();
         jsonst.next_part = true;
         jsonst.num_prt.part++;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        this.nextPart();
-        this.makeDelay("stop");
         mqtt.send("stop", false, "exec/service/maincap/sdi");
-        const {main_src} = this.state.config;
-        const {capture_id} = jsonst;
         mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src);
     }
 
@@ -204,7 +206,7 @@ class Ingest extends Component {
         for(let i in names.presets) {
             // Here we iterate dynamic presets
             if(i === moment().format('YYYY-MM-DD')) {
-                options.push({text: i, value: i, disabled: true})
+                options.push({text: '', value: i, disabled: true, label: i})
                 let preset = names.presets[i];
                 for(let i in preset) {
                     let curpreset = preset[i];
@@ -228,7 +230,7 @@ class Ingest extends Component {
             }
             // Here we iterate constant presets
             if(i === "recent") {
-                options.push({text: i, value: i, disabled: true})
+                options.push({text: '', value: i, disabled: true, label: i})
                 let preset = names.presets[i];
                 for(let i in preset) {
                     let curpreset = preset[i];
@@ -247,9 +249,9 @@ class Ingest extends Component {
             }
         }
         this.setState({options});
-        if(jsonst.action === "line") {
-            this.setPreset(jsonst.line_id, options)
-        }
+        // if(jsonst.action === "line") {
+        //     this.setPreset(jsonst.line_id, options)
+        // }
     }
 
     setPreset = (preset, options) => {
@@ -279,18 +281,22 @@ class Ingest extends Component {
             line.chol_date = jsonst.choldate;
         }
         jsonst.line = line;
+        jsonst.action = "line";
         console.log("-- Store line in state: ",jsonst.line);
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        console.log("-- Set line in WFDB -- ");
+        this.setWorkflow("line");
         // setState();
         // wfdbPost(curline);
         //FIXME: line should be in WF Database as it was in last version
-        if(jsonst.action.match(/^(start|stop)$/)) {
-            jsonst.action = "line";
-            mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        }
-        if(jsonst.action === "line") {
-            console.log("-- Set line in WFDB -- ");
-            this.setWorkflow("line");
-        }
+        // if(jsonst.action.match(/^(start|stop)$/)) {
+        //     jsonst.action = "line";
+        //     mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        // }
+        // if(jsonst.action === "line") {
+        //     console.log("-- Set line in WFDB -- ");
+        //     this.setWorkflow("line");
+        // }
     };
 
     setWorkflow = (action) => {
@@ -304,7 +310,7 @@ class Ingest extends Component {
         const {jsonst,config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading,options,preset_value} = this.state;
         if(!config) return
 
-        const next_button = jsonst.line.content_type === "LESSON_PART" && jsonst.line.collection_type !== "CONGRESS" && !jsonst.next_part
+        const next_button = jsonst.line?.content_type === "LESSON_PART" && jsonst.line?.collection_type !== "CONGRESS"
 
         return (
             <Segment textAlign='center' className='stream_segment' compact raised secondary>
@@ -347,7 +353,7 @@ class Ingest extends Component {
                         </Table.Cell>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled={next_button}
+                                    disabled={!next_button || next_loading}
                                     loading={next_loading}
                                     primary
                                     onClick={this.stopPart} >
@@ -362,7 +368,7 @@ class Ingest extends Component {
                         </Table.Cell>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled={!backup_online || stop_loading}
+                                    disabled={preset_value === "" || !backup_online || stop_loading}
                                     loading={stop_loading}
                                     negative
                                     onClick={this.stopCapture} >
@@ -375,7 +381,7 @@ class Ingest extends Component {
 
                 <Dropdown
                     fluid
-                    className="trim_files_dropdown"
+                    className="preset"
                     error={!preset_value}
                     scrolling={false}
                     placeholder={backup_online ? "--- SET PRESET ---" : "--- PRESS START ---"}
