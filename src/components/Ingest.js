@@ -21,6 +21,7 @@ class Ingest extends Component {
         backup_online: false,
         options: [],
         preset_value: "",
+        recover: true,
     };
 
     componentDidMount() {
@@ -102,8 +103,9 @@ class Ingest extends Component {
             this.setState({jsonst: data});
             this.setOptions(data, this.state.names);
             // Auto set previous preset
-            if(data.action === "line") {
-                this.setState({preset_value: data.line_id});
+            if(data.isRec && data.line && this.state.recover) {
+                this.setPreset(data.line_id);
+                this.setState({recover: false});
             }
         });
     };
@@ -272,17 +274,6 @@ class Ingest extends Component {
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         console.log("-- Set line in WFDB -- ");
         this.setWorkflow("line");
-        // setState();
-        // wfdbPost(curline);
-        //FIXME: line should be in WF Database as it was in last version
-        // if(jsonst.action.match(/^(start|stop)$/)) {
-        //     jsonst.action = "line";
-        //     mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        // }
-        // if(jsonst.action === "line") {
-        //     console.log("-- Set line in WFDB -- ");
-        //     this.setWorkflow("line");
-        // }
     };
 
     setWorkflow = (action) => {
@@ -317,7 +308,7 @@ class Ingest extends Component {
 
         return (
             <Segment textAlign='center' className='stream_segment' compact raised secondary>
-                <Segment clearing>
+                <Segment clearing color='blue'>
                 <Header as='h1'>
                     {config.header}
                 </Header>
@@ -342,7 +333,7 @@ class Ingest extends Component {
                         </Table.Row>
                     </Table>
 
-                <Segment clearing>
+                <Segment clearing color='blue'>
                 <Table basic='very'  unstackable>
                     <Table.Row>
                         <Table.Cell>
@@ -393,7 +384,6 @@ class Ingest extends Component {
                     disabled={jsonst?.next_part || !backup_online}
                     options={options}
                     onChange={(e,{value}) => this.setPreset(value)}
-                    //onChange={(e,data) => this.setPreset(e,data)}
                     onClick={this.getPresets}
                 >
                 </Dropdown>
