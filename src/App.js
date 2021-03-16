@@ -8,7 +8,7 @@ class App extends Component {
   render() {
     return (
         <Fragment>
-          <Ingest capture='single' />
+          <Ingest capture={window.location.pathname.split('/')[1]} />
         </Fragment>
     );
   }

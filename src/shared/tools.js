@@ -10,6 +10,7 @@ export const MQTT_LCL_URL = process.env.REACT_APP_MQTT_LCL_URL;
 export const MQTT_EXT_URL = process.env.REACT_APP_MQTT_EXT_URL;
 export const JNS_SRV = process.env.REACT_APP_JNS_SRV;
 export const JNS_STUN = process.env.REACT_APP_JNS_STUN;
+export const JSDB = process.env.REACT_APP_JSDB_STATE
 
 export const PRESET = {
     "lines": {
@@ -155,76 +156,12 @@ const setDate = (jsonst) => {
         jsonst.weekdate = cur_date;
         console.log("Hag name: "+jsonst.holidayname);
         console.log("Week date: "+jsonst.choldate);
-
     }
 
     return jsonst
     // This was in old workflow when we need n++ during all special days
     //var reqdate = ishag ? weekdate : curdate;
-
-    //TODO: WTF?
-    // if(!jsonst.next_part) { setState(); }
-    // getNumprt(jsonst.reqdate);
 }
-
-// function checkHoliday() {
-//     var hag = getHoliday();
-//     console.log("-- Holiday on Stop is: ",hag);
-//     if(jsonst.ishag === false && hag === true) {
-//         console.log("-- We start before holiday and stop after! --");
-//         jsonst.line.holiday = true;
-//         jsonst.line.hag = getHolidayname();
-//         jsonst.line.week_date = jsonst.line.capture_date;
-//         jsonst.line.chol_date = jsonst.line.capture_date;
-//         // If this check will on stopPart we need setState() here
-//         wfdbPost(jsonst.line);
-//     }
-// }
-
-// function getNumprt(reqdate) {
-//     console.log("-- GET numprt with date: "+reqdate);
-//     $.getJSON( "http://"+wfdb+"/state/ingest/numprt",function(data) {
-//         numprt = data;
-//         if(numprt.date !== reqdate) {
-//             numprt = { "date": reqdate, "LESSON_PART": 1, "MEAL": 1,"FRIENDS_GATHERING": 1,"UNKNOWN": 1, "part": 0};
-//             console.log("Set new: ",numprt);
-//             setNumprt(reqdate, numprt);
-//         }
-//         console.log("Got numprt: ",numprt);
-//         getOptions(numprt);
-//     })
-//         .fail(function() {
-//             console.log("FAIL: Error DB connectin.");
-//             // TODO: Here we need logic to set numprt in failmode
-//             numprt = { "date": reqdate, "LESSON_PART": 1, "MEAL": 1,"FRIENDS_GATHERING": 1,"UNKNOWN": 1, "part": 0};
-//             console.log("Set new numbers: ",numprt);
-//             setNumprt(reqdate, numprt);
-//             getOptions(numprt);
-//         });
-// }
-//
-// function setNumprt(reqdate, numprt) {
-//     console.log("-- SET Number and Parts",numprt);
-//     $.ajax({
-//         type: 'PUT',
-//         contentType: 'application/json',
-//         url: 'http://'+wfdb+'/state/ingest/numprt',
-//         data: JSON.stringify(numprt),
-//         success: function(data) {
-//             console.log("numprt saved: ",data);
-//         },
-//         error: function(data) {
-//             console.log("ERROR: Set numprt: ",data);
-//             jsonst["numprt"] = numprt;
-//             setState();
-//         }
-//     })
-//         .fail(function() {
-//             console.log("FAIL: Error DB connectin.");
-//             jsonst["numprt"] = numprt;
-//             setState();
-//         });
-// }
 
 const getWeekdate = () => {
     for(let i=0; i<5; i++) {
@@ -311,7 +248,6 @@ const getHolidayname = (date) => {
     return hag;
 }
 
-
 export const toHms = (totalSec) => {
     let d = parseInt(totalSec / (3600*24));
     let h = parseInt( totalSec / 3600 , 10) % 24;
@@ -332,16 +268,7 @@ export const getPercent = (total,current) => {
     return percent;
 };
 
-export const streamFetcher = (data, cb) => fetch(`http://10.66.3.16:8081`)
-    .then((response) => {
-        if (response.ok) {
-            return response.json().then(respond => cb(respond));
-        } else {
-            return null
-        }
-    })
-
-export const getData = (cb) => fetch("http://wfsrv.bbdomain.org/wfdb/names", {
+export const getData = (cb) => fetch(`${JSDB}`, {
         headers: {'Content-Type': 'application/json'}
     })
     .then((response) => {

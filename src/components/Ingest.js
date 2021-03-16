@@ -72,7 +72,7 @@ class Ingest extends Component {
             const topic = local ? watch : 'bb/' + watch;
             mqtt.join(topic);
             mqtt.join('workflow/service/data/#');
-            mqtt.join('workflow/state/capture/#');
+            mqtt.join('workflow/state/capture/'+this.props.capture);
             this.runTimer();
             mqtt.watch((message, topic) => {
                 this.onMqttMessage(message, topic);
