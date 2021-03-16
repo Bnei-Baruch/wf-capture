@@ -11,6 +11,85 @@ export const MQTT_EXT_URL = process.env.REACT_APP_MQTT_EXT_URL;
 export const JNS_SRV = process.env.REACT_APP_JNS_SRV;
 export const JNS_STUN = process.env.REACT_APP_JNS_STUN;
 
+export const PRESET = {
+    "lines": {
+    "7G4zzMuC": {
+        "auto_name": "mlt_o_rav_yyyy-mm-dd_unknown",
+            "capture_date": "yyyy-mm-dd",
+            "content_type": "UNKNOWN",
+            "final_name": "mlt_o_rav_yyyy-mm-dd_unknown",
+            "has_translation": true,
+            "language": "heb",
+            "lecturer": "rav",
+            "manual_name": null,
+            "require_test": true
+    },
+    "8H3iIRzV": {
+        "auto_name": "mlt_o_norav_yyyy-mm-dd_seuda_n1",
+            "capture_date": "yyyy-mm-dd",
+            "collection_type": "MEALS",
+            "content_type": "MEAL",
+            "final_name": "mlt_o_norav_yyyy-mm-dd_seuda_n1",
+            "has_translation": true,
+            "language": "heb",
+            "lecturer": "norav",
+            "manual_name": null,
+            "pattern": "meal",
+            "require_test": true
+    },
+    "C1JEylF7": {
+        "auto_name": "mlt_o_norav_yyyy-mm-dd_yeshivat-haverim_n1",
+            "capture_date": "yyyy-mm-dd",
+            "collection_type": "WEEKLY_FRIENDS_GATHERING",
+            "content_type": "FRIENDS_GATHERING",
+            "final_name": "mlt_o_norav_yyyy-mm-dd_yeshivat-haverim_n1",
+            "has_translation": true,
+            "language": "heb",
+            "lecturer": "norav",
+            "manual_name": null,
+            "pattern": "friends_gathering",
+            "require_test": false
+    },
+    "l7DZ2lxv": {
+        "artifact_type": "main",
+            "auto_name": "mlt_o_rav_yyyy-mm-dd_achana_lesson_n1_p0",
+            "capture_date": "yyyy-mm-dd",
+            "collection_type": "DAILY_LESSON",
+            "content_type": "LESSON_PART",
+            "final_name": "mlt_o_rav_DATE_lesson_NUM_PRT",
+            "has_translation": true,
+            "language": "heb",
+            "lecturer": "rav",
+            "manual_name": null,
+            "part": "0",
+            "pattern": "lesson",
+            "require_test": false,
+            "sources": [],
+            "tags": []
+    },
+},
+    "presets": {
+        "recent": [
+        {
+            "id": "l7DZ2lxv",
+            "name": "mlt_o_rav_DATE_lesson_NUM_PRT"
+        },
+        {
+            "id": "8H3iIRzV",
+            "name": "mlt_o_norav_DATE_seuda_NUM"
+        },
+        {
+            "id": "C1JEylF7",
+            "name": "mlt_o_norav_DATE_yeshivat-haverim_NUM"
+        },
+        {
+            "id": "7G4zzMuC",
+            "name": "mlt_o_rav_DATE_unknown_NUM"
+        }
+    ]
+}
+}
+
 
 export const getConfig = (capture) => {
     console.log("Set config for:" + capture);
@@ -47,7 +126,7 @@ export const newCaptureState = (jsonst) => {
     let capture_id = "c"+moment().format('x');
     let backup_id = "c"+(Number(moment().format('x'))+3)
     let start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
-    jsonst = {...jsonst, action: "start", backup_id, capture_id, start_name, next_part: false, isRec: true};
+    jsonst = {...jsonst, backup_id, capture_id, start_name, next_part: false, isRec: true};
     jsonst = setDate(jsonst);
     return jsonst
 }

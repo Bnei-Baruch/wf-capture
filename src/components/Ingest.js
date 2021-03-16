@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import {Segment, Button, Table, Message, Header, Dropdown, Divider} from 'semantic-ui-react';
 import './Ingest.css';
-import {getConfig, getData, newCaptureState, streamVisualizer, toHms, toSeconds} from "../shared/tools";
+import {getConfig, getData, newCaptureState, PRESET, streamVisualizer, toHms, toSeconds} from "../shared/tools";
 import moment from "moment";
 import mqtt from "../shared/mqtt";
 import media from "../shared/media";
@@ -10,6 +10,7 @@ class Ingest extends Component {
 
     state = {
         config: getConfig(this.props.capture),
+        names: PRESET,
         jsonst: {},
         start_loading: false,
         next_loading: false,
@@ -23,7 +24,7 @@ class Ingest extends Component {
     };
 
     componentDidMount() {
-        //this.getPresets();
+        this.getPresets();
         this.initMedia();
         this.initMQTT();
     };
@@ -32,28 +33,11 @@ class Ingest extends Component {
         clearInterval(this.state.ival);
     };
 
-    initMQTT = () => {
-        mqtt.init(this.state.config.user, (data) => {
-            console.log("[mqtt] init: ", data);
-            const watch = 'exec/service/data/#';
-            const local = window.location.hostname !== "shidur.kli.one";
-            const topic = local ? watch : 'bb/' + watch;
-            mqtt.join(topic);
-            mqtt.join('workflow/service/data/#');
-            mqtt.join('workflow/state/capture/#');
-            this.runTimer();
-            mqtt.watch((message, topic) => {
-                this.onMqttMessage(message, topic);
-            }, false)
-        })
-        mqtt.mq.on('state', data => {
-            console.log("[capture] Got state: ", data);
-            this.setState({jsonst: data});
-            // Auto set previous preset
-            if(data.action === "line") {
-                this.setState({preset_value: data.line_id});
-                this.getPresets();
-            }
+    getPresets = () => {
+        getData(data => {
+            console.log("[capture] Get presets: ", data);
+            let names = data;
+            this.setState({names});
         });
     };
 
@@ -79,6 +63,23 @@ class Ingest extends Component {
         streamVisualizer(stream, this.refs["canvas" + i],100);
     };
 
+    initMQTT = () => {
+        mqtt.init(this.state.config.user, (data) => {
+            console.log("[mqtt] init: ", data);
+            const watch = 'exec/service/data/#';
+            const local = window.location.hostname !== "shidur.kli.one";
+            const topic = local ? watch : 'bb/' + watch;
+            mqtt.join(topic);
+            mqtt.join('workflow/service/data/#');
+            mqtt.join('workflow/state/capture/#');
+            this.runTimer();
+            mqtt.watch((message, topic) => {
+                this.onMqttMessage(message, topic);
+            }, false)
+            this.onMqttState();
+        })
+    };
+
     onMqttMessage = (message, topic) => {
         const src = topic.split("/")[3]
         const {main_src,backup_src} = this.state.config;
@@ -95,21 +96,16 @@ class Ingest extends Component {
         }
     };
 
-    runTimer = () => {
-        this.getStat();
-        if(this.state.ival)
-            clearInterval(this.state.ival);
-        let ival = setInterval(() => {
-            this.getStat();
-        }, 1000);
-        this.setState({ival});
-    };
-
-    makeDelay = (key) => {
-        this.setState({[`${key}_loading`]: true});
-        setTimeout(() => {
-            this.setState({[`${key}_loading`]: false});
-        }, 3000);
+    onMqttState = () => {
+        mqtt.mq.on('state', data => {
+            console.log("[capture] Got state: ", data);
+            this.setState({jsonst: data});
+            this.setOptions(data, this.state.names);
+            // Auto set previous preset
+            if(data.action === "line") {
+                this.setState({preset_value: data.line_id});
+            }
+        });
     };
 
     getStat = () => {
@@ -122,6 +118,7 @@ class Ingest extends Component {
         this.makeDelay("start");
         let {jsonst} = this.state;
         jsonst = newCaptureState(jsonst);
+        jsonst.action = "start";
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/maincap/sdi");
@@ -154,17 +151,18 @@ class Ingest extends Component {
 
     startPart = () => {
         console.log("-- :: START PART :: --");
-        const {jsonst, names} = this.state;
+        const {jsonst} = this.state;
         const {main_src} = this.state.config;
         jsonst.capture_id = "c"+moment().format('x');
         jsonst.start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
         jsonst.next_part = true;
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/maincap/sdi");
             mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src);
+            this.setPreset(jsonst.line_id);
         }, 1000);
-        this.setOptions(jsonst, names)
-    }
+    };
 
     stopPart = () => {
         const {main_timer} = this.state;
@@ -183,22 +181,12 @@ class Ingest extends Component {
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         mqtt.send("stop", false, "exec/service/maincap/sdi");
         mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src);
-    }
+    };
 
     nextPart = () => {
         setTimeout(() => {
             this.state.main_online ? this.nextPart() : this.startPart();
         }, 5000);
-    }
-
-    getPresets = () => {
-        const {jsonst} = this.state;
-        getData(data => {
-            console.log("[capture] Get presets: ", data);
-            let names = data;
-            this.setState({names});
-            this.setOptions(jsonst, names);
-        });
     };
 
     setOptions = (jsonst, names) => {
@@ -221,8 +209,8 @@ class Ingest extends Component {
                     // we need logic based on collection_type
                     //let num = num_prt[curcontype];
                     //let prt = num_prt.part;
-                    let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
-                    name = name.replace("yyyy-mm-dd", psdate);
+                    //let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
+                    name = name.replace("yyyy-mm-dd", i);
                     //let name = name.replace("NUM", "n"+num);
                     //let name = name.replace("PRT", "p"+prt);
                     options.push({text: name, value: id})
@@ -249,15 +237,13 @@ class Ingest extends Component {
             }
         }
         this.setState({options});
-        // if(jsonst.action === "line") {
-        //     this.setPreset(jsonst.line_id, options)
-        // }
-    }
+    };
 
-    setPreset = (preset, options) => {
-        console.log("[capture] Set preset: ", preset, options)
-        const {names, jsonst} = this.state;
-        const new_name = options.find(i => i.value === preset).text
+    setPreset = (preset) => {
+        console.log("[capture] Set preset: ", preset);
+        const {names, jsonst, options} = this.state;
+        const new_name = options.find(i => i.value === preset).text;
+        console.log("[capture] Set new name: ", new_name)
         this.setState({preset_value: preset});
         let collection_type = names.lines[preset].collection_type;
         let content_type = names.lines[preset].content_type;
@@ -304,7 +290,24 @@ class Ingest extends Component {
         const {capture_id, backup_id} = this.state.jsonst;
         mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + main_src);
         mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src);
-    }
+    };
+
+    runTimer = () => {
+        this.getStat();
+        if(this.state.ival)
+            clearInterval(this.state.ival);
+        let ival = setInterval(() => {
+            this.getStat();
+        }, 1000);
+        this.setState({ival});
+    };
+
+    makeDelay = (key) => {
+        this.setState({[`${key}_loading`]: true});
+        setTimeout(() => {
+            this.setState({[`${key}_loading`]: false});
+        }, 3000);
+    };
 
     render() {
         const {jsonst,config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading,options,preset_value} = this.state;
@@ -387,9 +390,9 @@ class Ingest extends Component {
                     placeholder={backup_online ? "--- SET PRESET ---" : "--- PRESS START ---"}
                     selection
                     value={preset_value}
-                    disabled={!backup_online}
+                    disabled={jsonst?.next_part || !backup_online}
                     options={options}
-                    onChange={(e,{value, options}) => this.setPreset(value, options)}
+                    onChange={(e,{value}) => this.setPreset(value)}
                     //onChange={(e,data) => this.setPreset(e,data)}
                     onClick={this.getPresets}
                 >
