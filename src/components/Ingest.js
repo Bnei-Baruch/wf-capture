@@ -157,11 +157,12 @@ class Ingest extends Component {
         const {main_src} = this.state.config;
         jsonst.capture_id = "c"+moment().format('x');
         jsonst.start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
-        jsonst.next_part = true;
+        jsonst.action = "start";
+        jsonst.isRec = true;
+        mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/maincap/sdi");
-            mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src);
             this.setPreset(jsonst.line_id);
         }, 1000);
     };
@@ -177,18 +178,20 @@ class Ingest extends Component {
         const {main_src} = this.state.config;
         const {capture_id} = jsonst;
         this.makeDelay("next");
-        this.nextPart();
+        jsonst.action = "stop";
+        jsonst.isRec = false;
         jsonst.next_part = true;
         jsonst.num_prt.part++;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         mqtt.send("stop", false, "exec/service/maincap/sdi");
         mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src);
+        this.nextPart();
     };
 
     nextPart = () => {
         setTimeout(() => {
             this.state.main_online ? this.nextPart() : this.startPart();
-        }, 5000);
+        }, 3000);
     };
 
     setOptions = (jsonst, names) => {
@@ -297,7 +300,7 @@ class Ingest extends Component {
         this.setState({[`${key}_loading`]: true});
         setTimeout(() => {
             this.setState({[`${key}_loading`]: false});
-        }, 3000);
+        }, 7000);
     };
 
     render() {
