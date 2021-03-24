@@ -133,13 +133,17 @@ class Ingest extends Component {
     };
 
     stopCapture = () => {
+        const {jsonst} = this.state;
+        if (jsonst.line.content_type === "LESSON_PART" && window.confirm("WARNING!!! You going to STOP FULL LESSON Capture! Are you sure?") !== true) {
+            console.log("It's was mistake");
+            return;
+        }
         console.log("-- :: STOP CAPTURE :: --");
         const {main_src, backup_src} = this.state.config;
         this.makeDelay("stop");
         this.setState({preset_value: ""})
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi");
         mqtt.send("stop", false, "exec/service/"+backup_src+"/sdi");
-        const {jsonst} = this.state;
         if(jsonst.line.collection_type !== "CONGRESS")
             jsonst.num_prt[jsonst.line.content_type]++;
         jsonst.action = "stop";
