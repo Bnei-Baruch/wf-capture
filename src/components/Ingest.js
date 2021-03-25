@@ -88,10 +88,14 @@ class Ingest extends Component {
         if(services) {
             for(let i=0; i<services.length; i++) {
                 if(main_src === src) {
-                    this.setState({main_timer: toHms(services[i].runtime), main_online: services[i].alive});
+                    let main_online = services[i].alive;
+                    let main_timer = main_online ? toHms(services[i].runtime) : "00:00:00";
+                    this.setState({main_timer, main_online});
                 }
                 if(backup_src === src) {
-                    this.setState({backup_timer: toHms(services[i].runtime), backup_online: services[i].alive});
+                    let backup_online = services[i].alive;
+                    let backup_timer = backup_online ? toHms(services[i].runtime) : "00:00:00";
+                    this.setState({backup_timer, backup_online});
                 }
             }
         }
@@ -203,11 +207,11 @@ class Ingest extends Component {
 
     setOptions = (jsonst, names) => {
         let options = [];
-        for(let i in names.presets) {
+        for(let d in names.presets) {
             // Here we iterate dynamic presets
-            if(i === moment().format('YYYY-MM-DD')) {
-                options.push({text: '', value: i, disabled: true, label: i})
-                let preset = names.presets[i];
+            if(d === moment().format('YYYY-MM-DD')) {
+                options.push({text: '', value: d, disabled: true, label: d})
+                let preset = names.presets[d];
                 for(let i in preset) {
                     let curpreset = preset[i];
                     let name = curpreset.name;
@@ -222,16 +226,16 @@ class Ingest extends Component {
                     //let num = num_prt[curcontype];
                     //let prt = num_prt.part;
                     //let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
-                    name = name.replace("yyyy-mm-dd", i);
+                    name = name.replace("yyyy-mm-dd", d);
                     //let name = name.replace("NUM", "n"+num);
                     //let name = name.replace("PRT", "p"+prt);
                     options.push({text: name, value: id})
                 }
             }
             // Here we iterate constant presets
-            if(i === "recent") {
-                options.push({text: '', value: i, disabled: true, label: i})
-                let preset = names.presets[i];
+            if(d === "recent") {
+                options.push({text: '', value: d, disabled: true, label: d})
+                let preset = names.presets[d];
                 for(let i in preset) {
                     let curpreset = preset[i];
                     let name = curpreset.name;
