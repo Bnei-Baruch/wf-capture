@@ -49,7 +49,7 @@ class MqttMsg {
 
     join = (topic) => {
         console.debug("[mqtt] Subscribe to: ", topic)
-        let options = {qos: 1, nl: false}
+        let options = {qos: 2, nl: false}
         this.mq.subscribe(topic, {...options}, (err) => {
             err && console.error('[mqtt] Error: ', err);
         })
@@ -66,7 +66,7 @@ class MqttMsg {
     send = (message, retain, topic) => {
         if(message !== "status")
             console.debug("[mqtt] Send data on topic: ", topic, message)
-        let options = {qos: 1, retain};
+        let options = {qos: 2, retain};
         this.mq.publish(topic, message, {...options}, (err) => {
             err && console.error('[mqtt] Error: ',err);
         })
