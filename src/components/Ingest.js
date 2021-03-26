@@ -128,6 +128,7 @@ class Ingest extends Component {
         jsonst = newCaptureState(jsonst);
         jsonst.action = "start";
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
             mqtt.send("start", false, "exec/service/"+backup_src+"/sdi");
@@ -158,6 +159,7 @@ class Ingest extends Component {
         jsonst.num_prt.part = 0;
         jsonst.line = null;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
         setTimeout(() => {
             console.log("-- Set stop in WF -- ");
             this.setWorkflow("stop");
@@ -174,6 +176,7 @@ class Ingest extends Component {
         jsonst.isRec = true;
         mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
             mqtt.send("start", false, "exec/service/archcap/sdi");
@@ -197,6 +200,7 @@ class Ingest extends Component {
         jsonst.next_part = true;
         jsonst.num_prt.part++;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi");
         mqtt.send("stop", false, "exec/service/archcap/sdi");
         mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src);

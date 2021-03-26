@@ -24,7 +24,7 @@ class MqttMsg {
             connectTimeout: 10 * 1000,
             clientId: user.id + "-" + randomString(5)  ,
             protocolId: 'MQTT',
-            protocolVersion: 5,
+            protocolVersion: 4,
             clean: true,
             username: user.email,
             password: this.token,
