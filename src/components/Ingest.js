@@ -163,6 +163,7 @@ class Ingest extends Component {
         setTimeout(() => {
             console.log("-- Set stop in WF -- ");
             this.setWorkflow("stop");
+            mqtt.send(JSON.stringify({action: "stop", id: jsonst.capture_id}), false, "workflow/service/capture/archcap");
         }, 1000);
     };
 
@@ -204,7 +205,10 @@ class Ingest extends Component {
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi");
         mqtt.send("stop", false, "exec/service/archcap/sdi");
         mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src);
-        this.nextPart();
+        mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/archcap");
+        setTimeout(() => {
+            this.nextPart();
+        }, 3000);
     };
 
     nextPart = () => {
