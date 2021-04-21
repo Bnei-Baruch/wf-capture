@@ -129,13 +129,14 @@ class Ingest extends Component {
         jsonst.action = "start";
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
+        mqtt.send("start", false, "exec/service/archcap/sdi");
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
             mqtt.send("start", false, "exec/service/"+backup_src+"/sdi");
-            mqtt.send("start", false, "exec/service/archcap/sdi");
+            //mqtt.send("start", false, "exec/service/archcap/sdi");
             console.log("-- Set start in WF -- ");
             this.setWorkflow("start");
-        }, 1000);
+        }, 1500);
     };
 
     stopCapture = () => {
@@ -178,11 +179,12 @@ class Ingest extends Component {
         mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/archcap");
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
+        mqtt.send("start", false, "exec/service/archcap/sdi");
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
-            mqtt.send("start", false, "exec/service/archcap/sdi");
+            //mqtt.send("start", false, "exec/service/archcap/sdi");
             this.setPreset(jsonst.line_id);
-        }, 1000);
+        }, 1500);
     };
 
     stopPart = () => {
