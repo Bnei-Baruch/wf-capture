@@ -261,6 +261,10 @@ class Ingest extends Component {
         console.log("[capture] Set preset: ", preset);
         const {names, jsonst, options} = this.state;
         const new_name = options.find(i => i.value === preset).text;
+        if(!new_name) {
+            console.error("[capture] Something wrong with preset");
+            return;
+        }
         console.log("[capture] Set new name: ", new_name)
         this.setState({preset_value: preset});
         let collection_type = names.lines[preset].collection_type;
