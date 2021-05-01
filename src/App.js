@@ -8,7 +8,7 @@ class App extends Component {
   render() {
     return (
         <Fragment>
-          <Ingest capture={window.location.pathname.split('/')[1]} />
+            <Ingest capture={window.location.pathname.split('/')[1]} />
         </Fragment>
     );
   }

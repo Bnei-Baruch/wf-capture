@@ -128,15 +128,12 @@ class Ingest extends Component {
         jsonst = newCaptureState(jsonst);
         jsonst.action = "start";
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
-        mqtt.send("start", false, "exec/service/archcap/sdi");
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
             mqtt.send("start", false, "exec/service/"+backup_src+"/sdi");
-            //mqtt.send("start", false, "exec/service/archcap/sdi");
             console.log("-- Set start in WF -- ");
             this.setWorkflow("start");
-        }, 1500);
+        }, 1000);
     };
 
     stopCapture = () => {
@@ -151,7 +148,6 @@ class Ingest extends Component {
         this.setState({preset_value: ""})
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi");
         mqtt.send("stop", false, "exec/service/"+backup_src+"/sdi");
-        mqtt.send("stop", false, "exec/service/archcap/sdi");
         if(jsonst.line.collection_type !== "CONGRESS")
             jsonst.num_prt[jsonst.line.content_type]++;
         jsonst.action = "stop";
@@ -160,7 +156,6 @@ class Ingest extends Component {
         jsonst.num_prt.part = 0;
         jsonst.line = null;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
         setTimeout(() => {
             console.log("-- Set stop in WF -- ");
             this.setWorkflow("stop");
@@ -176,15 +171,11 @@ class Ingest extends Component {
         jsonst.action = "start";
         jsonst.isRec = true;
         mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src);
-        mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/archcap");
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
-        mqtt.send("start", false, "exec/service/archcap/sdi");
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
-            //mqtt.send("start", false, "exec/service/archcap/sdi");
             this.setPreset(jsonst.line_id);
-        }, 1500);
+        }, 1000);
     };
 
     stopPart = () => {
@@ -203,11 +194,8 @@ class Ingest extends Component {
         jsonst.next_part = true;
         jsonst.num_prt.part++;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi");
-        mqtt.send("stop", false, "exec/service/archcap/sdi");
         mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src);
-        mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/archcap");
         setTimeout(() => {
             this.nextPart();
         }, 3000);
@@ -300,7 +288,6 @@ class Ingest extends Component {
         jsonst.action = "line";
         console.log("-- Store line in state: ",jsonst.line);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
-        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/archive");
         console.log("-- Set line in WFDB -- ");
         this.setWorkflow("line");
     };
@@ -310,7 +297,6 @@ class Ingest extends Component {
         const {capture_id, backup_id} = this.state.jsonst;
         mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + main_src);
         mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src);
-        mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/archcap");
     };
 
     runTimer = () => {
