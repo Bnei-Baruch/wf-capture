@@ -5,7 +5,6 @@ export const BACKUPCAP = process.env.REACT_APP_BACKUPCAP;
 export const MAINCAP = process.env.REACT_APP_MAINCAP;
 export const MLTBACKUP = process.env.REACT_APP_MLTBACKUP;
 export const MLTCAP = process.env.REACT_APP_MLTCAP;
-export const TEST = process.env.REACT_APP_TEST;
 export const MQTT_LCL_URL = process.env.REACT_APP_MQTT_LCL_URL;
 export const MQTT_EXT_URL = process.env.REACT_APP_MQTT_EXT_URL;
 export const JNS_SRV = process.env.REACT_APP_JNS_SRV;
@@ -283,9 +282,14 @@ export const getData = (cb) => fetch(`${JSDB}`, {
     .then((response) => {
         if (response.ok) {
             return response.json().then(data => cb(data));
+        } else {
+            cb(null)
         }
     })
-    .catch(ex => console.log(`getData`, ex));
+    .catch(ex => {
+        console.log(`getData`, ex);
+        cb(null)
+    });
 
 
 const getBufferAverage = (analyser) => {

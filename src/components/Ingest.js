@@ -25,7 +25,6 @@ class Ingest extends Component {
     };
 
     componentDidMount() {
-        this.getPresets();
         this.initMedia();
         this.initMQTT();
     };
@@ -34,10 +33,11 @@ class Ingest extends Component {
         clearInterval(this.state.ival);
     };
 
-    getPresets = () => {
+    getPresets = (jsonst) => {
         getData(data => {
-            console.log("[capture] Get presets: ", data);
-            let names = data;
+            let names = data || this.state.names;
+            console.log("[capture] Get presets: ", names);
+            this.setOptions(jsonst, names);
             this.setState({names});
         });
     };
@@ -104,13 +104,8 @@ class Ingest extends Component {
     onMqttState = () => {
         mqtt.mq.on('state', data => {
             console.log("[capture] Got state: ", data);
+            this.getPresets(data);
             this.setState({jsonst: data});
-            this.setOptions(data, this.state.names);
-            // Auto set previous preset
-            if(data.isRec && data.line && this.state.recover) {
-                this.setPreset(data.line_id);
-                this.setState({recover: false});
-            }
         });
     };
 
@@ -208,6 +203,7 @@ class Ingest extends Component {
     };
 
     setOptions = (jsonst, names) => {
+        console.log("[capture] Set options for: ", names);
         let options = [];
         for(let d in names.presets) {
             // Here we iterate dynamic presets
@@ -254,7 +250,14 @@ class Ingest extends Component {
                 }
             }
         }
-        this.setState({options});
+        this.setState({options}, () => {
+            if(jsonst.isRec && jsonst.line && this.state.recover) {
+                console.log("-- Capture started! --");
+                console.log("[capture] Going to recover state: ", jsonst);
+                this.setPreset(jsonst.line_id);
+                this.setState({recover: false});
+            }
+        });
     };
 
     setPreset = (preset) => {
@@ -404,7 +407,6 @@ class Ingest extends Component {
                     disabled={jsonst?.next_part || !backup_online}
                     options={options}
                     onChange={(e,{value}) => this.setPreset(value)}
-                    onClick={this.getPresets}
                 >
                 </Dropdown>
 
