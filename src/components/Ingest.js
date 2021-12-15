@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import {Segment, Button, Table, Message, Header, Dropdown, Divider} from 'semantic-ui-react';
 import './Ingest.css';
-import {getConfig, getData, newCaptureState, PRESET, streamVisualizer, toHms, toSeconds} from "../shared/tools";
+import {getConfig, getData, newCaptureState, PRESETS, streamVisualizer, toHms, toSeconds} from "../shared/tools";
 import moment from "moment";
 import mqtt from "../shared/mqtt";
 import media from "../shared/media";
@@ -10,7 +10,7 @@ class Ingest extends Component {
 
     state = {
         config: getConfig(this.props.capture),
-        names: PRESET,
+        presets: PRESETS,
         jsonst: {},
         start_loading: false,
         next_loading: false,
@@ -35,10 +35,10 @@ class Ingest extends Component {
 
     getPresets = (jsonst) => {
         getData(data => {
-            let names = data || this.state.names;
-            console.log("[capture] Get presets: ", names);
-            this.setOptions(jsonst, names);
-            this.setState({names});
+            let presets = data || this.state.presets;
+            console.log("[capture] Get presets: ", presets);
+            this.setOptions(jsonst, presets);
+            this.setState({presets});
         });
     };
 
@@ -169,7 +169,7 @@ class Ingest extends Component {
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
-            this.setPreset(jsonst.line_id);
+            this.setPreset(jsonst.line);
         }, 1000);
     };
 
@@ -202,51 +202,36 @@ class Ingest extends Component {
         }, 3000);
     };
 
-    setOptions = (jsonst, names) => {
-        console.log("[capture] Set options for: ", names);
+    setOptions = (jsonst, presets) => {
+        console.log("[capture] Set options for: ", presets);
         let options = [];
-        for(let d in names.presets) {
+        for(let d in presets) {
             // Here we iterate dynamic presets
-            if(d === moment().format('YYYY-MM-DD')) {
+            const cur_date = moment().format('YYYY-MM-DD');
+            if(d === cur_date) {
                 options.push({text: '', value: d, disabled: true, label: d})
-                let preset = names.presets[d];
-                for(let i in preset) {
-                    let curpreset = preset[i];
-                    let name = curpreset.name;
-                    let id = curpreset.id;
-                    if(!names.lines[id]) {
-                        continue
-                    }
-                    //let curcontype = names.lines[id].content_type;
-                    //let curcoltype = names.lines[id].collection_type;
-                    // If we want to switch num_prt in dynamic preset
-                    // we need logic based on collection_type
-                    //let num = num_prt[curcontype];
-                    //let prt = num_prt.part;
-                    //let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
+                let lines = presets[d];
+                for(let i in lines) {
+                    let {name, line} = lines[i];
                     name = name.replace("yyyy-mm-dd", d);
-                    //let name = name.replace("NUM", "n"+num);
-                    //let name = name.replace("PRT", "p"+prt);
-                    options.push({text: name, value: id})
+                    line.final_name = name;
+                    options.push({text: name, value: line})
                 }
             }
             // Here we iterate constant presets
             if(d === "recent") {
                 options.push({text: '', value: d, disabled: true, label: d})
-                let preset = names.presets[d];
-                for(let i in preset) {
-                    let curpreset = preset[i];
-                    let name = curpreset.name;
-                    let id = curpreset.id;
-                    let curcontype = names.lines[id].content_type;
-                    //let curcoltype = names.lines[id].collection_type;
-                    let num = jsonst.num_prt[curcontype];
+                let lines = presets[d];
+                for(let i in lines) {
+                    let {name, line} = lines[i];
+                    let num = jsonst.num_prt[line.content_type];
                     let prt = jsonst.num_prt.part;
                     let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
                     name = name.replace("DATE", psdate);
                     name = name.replace("NUM", "n"+num);
                     name = name.replace("PRT", "p"+prt);
-                    options.push({text: name, value: id})
+                    line.final_name = name;
+                    options.push({text: name, value: line})
                 }
             }
         }
@@ -254,36 +239,24 @@ class Ingest extends Component {
             if(jsonst.isRec && jsonst.line && this.state.recover) {
                 console.log("-- Capture started! --");
                 console.log("[capture] Going to recover state: ", jsonst);
-                this.setPreset(jsonst.line_id);
+                this.setPreset(jsonst.line);
                 this.setState({recover: false});
             }
         });
     };
 
-    setPreset = (preset) => {
-        console.log("[capture] Set preset: ", preset);
-        const {names, jsonst, options} = this.state;
-        const new_name = options.find(i => i.value === preset)?.text;
-        if(!new_name) {
-            console.error("[capture] Something wrong with preset");
-            return;
-        }
-        console.log("[capture] Set new name: ", new_name)
-        this.setState({preset_value: preset});
-        let collection_type = names.lines[preset].collection_type;
-        let content_type = names.lines[preset].content_type;
+    setPreset = (line) => {
+        console.log("[capture] Set preset: ", line);
+        const {jsonst} = this.state;
+        this.setState({preset_value: line});
         let prt = jsonst.num_prt.part;
-        let num = jsonst.num_prt[content_type];
-        jsonst.stop_name = new_name;
-        jsonst.line_id = preset;
-        let line = names.lines[preset];
-        line.content_type = content_type;
-        line.part = (collection_type === "CONGRESS") ? line.part : prt;
-        line.number = (collection_type === "CONGRESS") ? line.number : num;
+        let num = jsonst.num_prt[line.content_type];
+        jsonst.stop_name = line.final_name;
+        line.part = (line.collection_type === "CONGRESS") ? line.part : prt;
+        line.number = (line.collection_type === "CONGRESS") ? line.number : num;
         line.holiday = jsonst.isHag;
         line.capture_date = jsonst.date;
-        line.final_name = new_name;
-        if(content_type === "LESSON_PART") {
+        if(line.content_type === "LESSON_PART") {
             line.lid = jsonst.backup_id;
         }
         if(jsonst.ishag) {
