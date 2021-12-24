@@ -20,7 +20,7 @@ class Ingest extends Component {
         main_online: false,
         backup_online: false,
         options: [],
-        preset_value: "",
+        line_id: "",
         recover: true,
     };
 
@@ -140,7 +140,7 @@ class Ingest extends Component {
         console.log("-- :: STOP CAPTURE :: --");
         const {main_src, backup_src} = this.state.config;
         this.makeDelay("stop");
-        this.setState({preset_value: ""})
+        this.setState({line_id: ""})
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi");
         mqtt.send("stop", false, "exec/service/"+backup_src+"/sdi");
         if(jsonst.line.collection_type !== "CONGRESS")
@@ -169,7 +169,7 @@ class Ingest extends Component {
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
-            this.setPreset(jsonst.line);
+            this.saveState(jsonst.line_id);
         }, 1000);
     };
 
@@ -205,47 +205,60 @@ class Ingest extends Component {
     setOptions = (jsonst, presets) => {
         console.log("[capture] Set options for: ", presets);
         let options = [];
+        let lines = {};
         for(let d in presets) {
             // Here we iterate dynamic presets
             const cur_date = moment().format('YYYY-MM-DD');
             if(d === cur_date) {
                 options.push({key: d, text: '', value: d, disabled: true, label: d})
-                let lines = presets[d];
-                for(let i in lines) {
-                    let line = this.setLine(lines[i], jsonst);
-                    options.push({key: d+i, text: line.final_name, value: line})
+                const preset = presets[d];
+                for(let i in preset) {
+                    let {name, id, line} = preset[i];
+                    lines[id] = line;
+                    name = name.replace("yyyy-mm-dd", cur_date);
+                    options.push({key: id, text: name, value: id})
                 }
             }
             // Here we iterate constant presets
             if(d === "recent") {
                 options.push({key: d, text: '', value: d, disabled: true, label: d})
-                let lines = presets[d];
-                for(let i in lines) {
-                    let line = this.setLine(lines[i], jsonst);
-                    options.push({key: d+i, text: line.final_name, value: line})
+                const preset = presets[d];
+                for(let i in preset) {
+                    let {name, id, line} = preset[i];
+                    lines[id] = line;
+                    name = name.replace("DATE", cur_date);
+                    name = name.replace("yyyy-mm-dd", cur_date);
+                    name = name.replace("NUM", "n" + jsonst.num_prt[line.content_type]);
+                    name = name.replace("PRT", "p" + jsonst.num_prt.part);
+                    options.push({key: id, text: name, value: id})
                 }
             }
         }
-        this.setState({options}, () => {
+        this.setState({options, lines}, () => {
             if(jsonst.isRec && jsonst.line && this.state.recover) {
                 console.log("-- Capture started! --");
                 console.log("[capture] Going to recover state: ", jsonst);
-                this.setPreset(jsonst.line);
+                this.saveState(jsonst.line_id);
                 this.setState({recover: false});
             }
         });
     };
 
-    setLine = (preset, jsonst) => {
-        let {name, line} = preset;
+    setLine = (line_id, jsonst) => {
+        const {lines, options} = this.state;
+        let line = lines[line_id];
+        const final_name = options.find(i => i.value === line_id)?.text;
+        if(!final_name) {
+            console.error("[capture] Something wrong with preset");
+            return;
+        }
         let num = jsonst.num_prt[line.content_type];
         let prt = jsonst.num_prt.part;
         let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
-        name = name.replace("DATE", psdate);
-        name = name.replace("yyyy-mm-dd", psdate);
-        name = name.replace("NUM", "n"+num);
-        name = name.replace("PRT", "p"+prt);
-        line.final_name = name;
+        line.final_name = final_name.replace("DATE", psdate);
+        line.final_name = final_name.replace("yyyy-mm-dd", psdate);
+        line.final_name = final_name.replace("NUM", "n"+num);
+        line.final_name = final_name.replace("PRT", "p"+prt);
         line.part = (line.collection_type === "CONGRESS") ? line.part : prt;
         line.number = (line.collection_type === "CONGRESS") ? line.number : num;
         line.holiday = jsonst.isHag;
@@ -261,14 +274,15 @@ class Ingest extends Component {
         return line;
     }
 
-    setPreset = (line) => {
-        console.log("[capture] Set preset: ", line);
-        const {jsonst} = this.state;
-        jsonst.line = line;
-        this.setState({preset_value: line});
+    saveState = (line_id) => {
+        const {lines, jsonst} = this.state;
+        console.log("[capture] Save state: ", lines[line_id]);
+        this.setState({line_id});
+        jsonst.line = this.setLine(line_id, jsonst);
+        jsonst.line_id = line_id;
         jsonst.action = "line";
-        jsonst.stop_name = line.final_name;
-        console.log("-- Store line in state: ",jsonst.line);
+        jsonst.stop_name = jsonst.line.final_name;
+        console.log("-- Store line in state: ", jsonst);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         console.log("-- Set line in WFDB -- ");
         this.setWorkflow("line");
@@ -299,7 +313,7 @@ class Ingest extends Component {
     };
 
     render() {
-        const {jsonst,config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading,options,preset_value} = this.state;
+        const {jsonst,config,main_online,backup_online,main_timer,backup_timer,start_loading,next_loading,stop_loading,options,line_id} = this.state;
         if(!config) return
 
         const next_button = jsonst.line?.content_type === "LESSON_PART" && jsonst.line?.collection_type !== "CONGRESS"
@@ -360,7 +374,7 @@ class Ingest extends Component {
                         </Table.Cell>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled={preset_value === "" || !backup_online || stop_loading}
+                                    disabled={line_id === "" || !backup_online || stop_loading}
                                     loading={stop_loading}
                                     negative
                                     onClick={this.stopCapture} >
@@ -374,14 +388,14 @@ class Ingest extends Component {
                 <Dropdown
                     fluid
                     className="preset"
-                    error={!preset_value}
+                    error={!line_id}
                     scrolling={false}
                     placeholder={backup_online ? "--- SET PRESET ---" : "--- PRESS START ---"}
                     selection
-                    value={preset_value}
+                    value={line_id}
                     disabled={jsonst?.next_part || !backup_online}
                     options={options}
-                    onChange={(e,{value}) => this.setPreset(value)}
+                    onChange={(e,{value}) => this.saveState(value)}
                 >
                 </Dropdown>
 
