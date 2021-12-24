@@ -209,29 +209,20 @@ class Ingest extends Component {
             // Here we iterate dynamic presets
             const cur_date = moment().format('YYYY-MM-DD');
             if(d === cur_date) {
-                options.push({text: '', value: d, disabled: true, label: d})
+                options.push({key: d, text: '', value: d, disabled: true, label: d})
                 let lines = presets[d];
                 for(let i in lines) {
-                    let {name, line} = lines[i];
-                    name = name.replace("yyyy-mm-dd", d);
-                    line.final_name = name;
-                    options.push({text: name, value: line})
+                    let line = this.setLine(lines[i], jsonst);
+                    options.push({key: d+i, text: line.final_name, value: line})
                 }
             }
             // Here we iterate constant presets
             if(d === "recent") {
-                options.push({text: '', value: d, disabled: true, label: d})
+                options.push({key: d, text: '', value: d, disabled: true, label: d})
                 let lines = presets[d];
                 for(let i in lines) {
-                    let {name, line} = lines[i];
-                    let num = jsonst.num_prt[line.content_type];
-                    let prt = jsonst.num_prt.part;
-                    let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
-                    name = name.replace("DATE", psdate);
-                    name = name.replace("NUM", "n"+num);
-                    name = name.replace("PRT", "p"+prt);
-                    line.final_name = name;
-                    options.push({text: name, value: line})
+                    let line = this.setLine(lines[i], jsonst);
+                    options.push({key: d+i, text: line.final_name, value: line})
                 }
             }
         }
@@ -245,13 +236,16 @@ class Ingest extends Component {
         });
     };
 
-    setPreset = (line) => {
-        console.log("[capture] Set preset: ", line);
-        const {jsonst} = this.state;
-        this.setState({preset_value: line});
-        let prt = jsonst.num_prt.part;
+    setLine = (preset, jsonst) => {
+        let {name, line} = preset;
         let num = jsonst.num_prt[line.content_type];
-        jsonst.stop_name = line.final_name;
+        let prt = jsonst.num_prt.part;
+        let psdate = moment.unix(jsonst.capture_id.substr(1).slice(0,-3)).format('YYYY-MM-DD');
+        name = name.replace("DATE", psdate);
+        name = name.replace("yyyy-mm-dd", psdate);
+        name = name.replace("NUM", "n"+num);
+        name = name.replace("PRT", "p"+prt);
+        line.final_name = name;
         line.part = (line.collection_type === "CONGRESS") ? line.part : prt;
         line.number = (line.collection_type === "CONGRESS") ? line.number : num;
         line.holiday = jsonst.isHag;
@@ -264,8 +258,16 @@ class Ingest extends Component {
             line.week_date = jsonst.weekdate;
             line.chol_date = jsonst.choldate;
         }
+        return line;
+    }
+
+    setPreset = (line) => {
+        console.log("[capture] Set preset: ", line);
+        const {jsonst} = this.state;
         jsonst.line = line;
+        this.setState({preset_value: line});
         jsonst.action = "line";
+        jsonst.stop_name = line.final_name;
         console.log("-- Store line in state: ",jsonst.line);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         console.log("-- Set line in WFDB -- ");
