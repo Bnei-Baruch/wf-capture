@@ -9,6 +9,7 @@ class App extends Component {
     return (
         <Fragment>
             <Ingest capture={window.location.pathname.split('/')[1]} />
+            {/*<Ingest capture="multi" />*/}
         </Fragment>
     );
   }
