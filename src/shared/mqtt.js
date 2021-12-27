@@ -7,7 +7,7 @@ class MqttMsg {
         this.user = null;
         this.mq = null;
         this.connected = false;
-        this.room = null;
+        this.capture = null;
         this.token = null;
     }
 
@@ -74,7 +74,8 @@ class MqttMsg {
 
     watch = (callback, stat) => {
         this.mq.on('message',  (topic, data, packet) => {
-            if (/state/.test(topic)) {
+            const topic_state = 'workflow/state/capture/' + this.capture
+            if (topic_state === topic) {
                 console.debug("[mqtt] State from topic: ", topic);
                 this.mq.emit('state', JSON.parse(data.toString()));
             } else {
@@ -88,6 +89,10 @@ class MqttMsg {
 
     setToken = (token) => {
         this.token = token;
+    }
+
+    setCapture = (capture) => {
+        this.capture = capture;
     }
 
 }

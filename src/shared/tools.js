@@ -1,5 +1,6 @@
 import moment from "moment";
 import Hebcal from "hebcal";
+import mqtt from "../shared/mqtt";
 
 export const BACKUPCAP = process.env.REACT_APP_BACKUPCAP;
 export const MAINCAP = process.env.REACT_APP_MAINCAP;
@@ -124,6 +125,7 @@ export const getConfig = (capture) => {
         }
     }
     config.user = {id: capture, email: capture+"@bbdomain.org"};
+    mqtt.setCapture(capture);
     return config
 }
 
