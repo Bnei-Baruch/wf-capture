@@ -169,7 +169,8 @@ class Ingest extends Component {
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
-            this.saveState(jsonst.line_id);
+            //FIXME: Here we to simulate choose option in ui
+            this.saveLine(jsonst.line_id);
         }, 1000);
     };
 
@@ -236,9 +237,11 @@ class Ingest extends Component {
         }
         this.setState({options, lines}, () => {
             if(jsonst.isRec && jsonst.line && this.state.recover) {
+                // Here we need put selected option in ui only
+                // when page opened and record already stated
                 console.log("-- Capture started! --");
-                console.log("[capture] Going to recover state: ", jsonst);
-                this.saveState(jsonst.line_id);
+                this.setState({recover: false, line_id: jsonst.line_id});
+            } else {
                 this.setState({recover: false});
             }
         });
@@ -274,7 +277,7 @@ class Ingest extends Component {
         return line;
     }
 
-    saveState = (line_id) => {
+    saveLine = (line_id) => {
         const {lines, jsonst} = this.state;
         console.log("[capture] Save state: ", lines[line_id]);
         this.setState({line_id});
@@ -395,7 +398,7 @@ class Ingest extends Component {
                     value={line_id}
                     disabled={jsonst?.next_part || !backup_online}
                     options={options}
-                    onChange={(e,{value}) => this.saveState(value)}
+                    onChange={(e,{value}) => this.saveLine(value)}
                 >
                 </Dropdown>
 
