@@ -171,7 +171,7 @@ class Ingest extends Component {
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
             //FIXME: Here we to simulate choose option in ui
             this.saveLine(jsonst.line_id);
-        }, 1000);
+        }, 3000);
     };
 
     stopPart = () => {
