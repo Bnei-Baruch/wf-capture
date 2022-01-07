@@ -314,8 +314,7 @@ class Ingest extends Component {
         const {main_src, backup_src} = this.state.config;
         const {capture_id, backup_id} = this.state.jsonst;
         mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + main_src);
-        if(action !== "line")
-            mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src);
+        mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src);
     };
 
     runTimer = () => {
