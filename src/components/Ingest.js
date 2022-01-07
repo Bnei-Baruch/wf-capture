@@ -1,7 +1,17 @@
 import React, { Component } from 'react';
 import {Segment, Button, Table, Message, Header, Dropdown, Divider} from 'semantic-ui-react';
 import './Ingest.css';
-import {getConfig, getData, newCaptureState, PRESETS, streamVisualizer, toHms, toSeconds} from "../shared/tools";
+import {
+    getConfig,
+    getIngestState,
+    getData,
+    newCaptureState,
+    PRESETS,
+    streamVisualizer,
+    toHms,
+    toSeconds,
+    setIngestState
+} from "../shared/tools";
 import moment from "moment";
 import mqtt from "../shared/mqtt";
 import media from "../shared/media";
@@ -25,6 +35,9 @@ class Ingest extends Component {
     };
 
     componentDidMount() {
+        getIngestState(this.props.capture, data => {
+            console.log(" :: Ingest State: ", data);
+        })
         this.initMedia();
         this.initMQTT();
     };
@@ -286,16 +299,23 @@ class Ingest extends Component {
         jsonst.action = "line";
         jsonst.stop_name = jsonst.line.final_name;
         console.log("-- Store line in state: ", jsonst);
+        setIngestState(this.props.capture, jsonst, data => {
+            console.log(" :: setIngestState: ", data);
+        });
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        //FIXME: Here we must be sure that line already in state!
         console.log("-- Set line in WFDB -- ");
-        this.setWorkflow("line");
+        setTimeout(() => {
+            this.setWorkflow("line");
+        }, 3000);
     };
 
     setWorkflow = (action) => {
         const {main_src, backup_src} = this.state.config;
         const {capture_id, backup_id} = this.state.jsonst;
         mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + main_src);
-        mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src);
+        if(action !== "line")
+            mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src);
     };
 
     runTimer = () => {

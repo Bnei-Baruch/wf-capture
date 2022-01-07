@@ -10,7 +10,8 @@ export const MQTT_LCL_URL = process.env.REACT_APP_MQTT_LCL_URL;
 export const MQTT_EXT_URL = process.env.REACT_APP_MQTT_EXT_URL;
 export const JNS_SRV = process.env.REACT_APP_JNS_SRV;
 export const JNS_STUN = process.env.REACT_APP_JNS_STUN;
-export const JSDB = process.env.REACT_APP_JSDB_STATE
+export const JSDB = process.env.REACT_APP_JSDB_STATE;
+export const INGEST_STATE = process.env.REACT_APP_INGEST_STATE;
 
 export const PRESETS = {
         "recent": [
@@ -86,6 +87,33 @@ export const PRESETS = {
         }
     ]
 }
+
+export const getIngestState = (capture, cb) => fetch(`${INGEST_STATE}/${capture}`, {
+    headers: {'Content-Type': 'application/json'}
+})
+    .then((response) => {
+        if (response.ok) {
+            return response.json().then(data => cb(data));
+        } else {
+            cb(null)
+        }
+    })
+    .catch(ex => {
+        console.log(`getIngestState`, ex);
+        cb(null)
+    });
+
+export const setIngestState = (capture, data, cb) => fetch(`${INGEST_STATE}/${capture}`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body:  JSON.stringify(data)
+})
+    .then((response) => {
+        if (response.ok) {
+            return response.json().then(respond => cb(respond));
+        }
+    })
+    .catch(ex => console.log("setIngestState error:", ex));
 
 export const randomString = (len) => {
     let charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
