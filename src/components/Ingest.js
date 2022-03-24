@@ -137,6 +137,7 @@ class Ingest extends Component {
         jsonst.action = "start";
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         setTimeout(() => {
+            if(this.props.capture === "multi") mqtt.send("start", false, "exec/service/archcap/sdi");
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
             mqtt.send("start", false, "exec/service/"+backup_src+"/sdi");
             console.log("-- Set start in WF -- ");
@@ -154,6 +155,7 @@ class Ingest extends Component {
         const {main_src, backup_src} = this.state.config;
         this.makeDelay("stop");
         this.setState({line_id: ""})
+        if(this.props.capture === "multi") mqtt.send("stop", false, "exec/service/archcap/sdi");
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi");
         mqtt.send("stop", false, "exec/service/"+backup_src+"/sdi");
         if(jsonst.line.collection_type !== "CONGRESS")
@@ -181,6 +183,7 @@ class Ingest extends Component {
         mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
         setTimeout(() => {
+            if(this.props.capture === "multi") mqtt.send("start", false, "exec/service/archcap/sdi");
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi");
             //FIXME: Here we to simulate choose option in ui
             this.saveLine(jsonst.line_id);
@@ -203,6 +206,7 @@ class Ingest extends Component {
         jsonst.next_part = true;
         jsonst.num_prt.part++;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture);
+        if(this.props.capture === "multi") mqtt.send("stop", false, "exec/service/archcap/sdi");
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi");
         mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src);
         setTimeout(() => {
@@ -313,6 +317,7 @@ class Ingest extends Component {
     setWorkflow = (action) => {
         const {main_src, backup_src} = this.state.config;
         const {capture_id, backup_id} = this.state.jsonst;
+        if(this.props.capture === "multi") mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/archcap");
         mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + main_src);
         mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src);
     };
