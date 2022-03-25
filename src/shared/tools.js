@@ -132,6 +132,7 @@ export const getConfig = (capture) => {
         config = {
             capture,
             header: 'MLT Capture',
+            arch_src: "archcap",
             main_src: "mltcap",
             backup_src: "mltbackup",
             main_ip: MLTCAP,
@@ -144,6 +145,7 @@ export const getConfig = (capture) => {
         config = {
             capture,
             header: 'SDI Capture',
+            arch_src: "archcap",
             main_src: "maincap",
             backup_src: "backupcap",
             main_ip: MAINCAP,
