@@ -6,7 +6,7 @@ import moment from "moment";
 import mqtt from "../shared/mqtt";
 import media from "../shared/media";
 
-class Ingest extends Component {
+class IngestTest extends Component {
 
     state = {
         config: getConfig(this.props.capture),
@@ -28,7 +28,7 @@ class Ingest extends Component {
         getIngestState(this.props.capture, data => {
             console.log(" :: Ingest State: ", data);
         })
-        this.initMedia();
+        //this.initMedia();
         this.initMQTT();
     };
 
@@ -76,7 +76,7 @@ class Ingest extends Component {
             mqtt.join(topic , 2);
             mqtt.join('workflow/service/data/#', 2);
             mqtt.join('workflow/state/capture/'+this.props.capture, 2);
-            this.runTimer();
+            //this.runTimer();
             mqtt.watch((message, topic) => {
                 this.onMqttMessage(message, topic);
             }, false)
@@ -85,24 +85,35 @@ class Ingest extends Component {
     };
 
     onMqttMessage = (message, topic) => {
-        console.log("[mqtt] message: ", message);
+        //console.log("[mqtt] message: ", message, topic);
         const src = topic.split("/")[3]
         const {main_src,backup_src} = this.state.config;
         let services = message.data;
-        if(services) {
-            for(let i=0; i<services.length; i++) {
-                if(main_src === src) {
-                    let main_online = services[i].alive;
-                    let main_timer = main_online ? toHms(services[i].runtime) : "00:00:00";
-                    this.setState({main_timer, main_online});
-                }
-                if(backup_src === src) {
-                    let backup_online = services[i].alive;
-                    let backup_timer = backup_online ? toHms(services[i].runtime) : "00:00:00";
-                    this.setState({backup_timer, backup_online});
-                }
-            }
+
+        if(message.message === "On") {
+            let main_online = true;
+            let main_timer = main_online ? services.out_time.split('.')[0] : "00:00:00";
+            this.setState({main_timer, main_online});
+        } else {
+            let main_online = false;
+            let main_timer = "00:00:00";
+            this.setState({main_timer, main_online});
         }
+
+        // if(services) {
+        //     for(let i=0; i<services.length; i++) {
+        //         if(main_src === src) {
+        //             let main_online = services[i].alive;
+        //             let main_timer = main_online ? toHms(services[i].runtime) : "00:00:00";
+        //             this.setState({main_timer, main_online});
+        //         }
+        //         if(backup_src === src) {
+        //             let backup_online = services[i].alive;
+        //             let backup_timer = backup_online ? toHms(services[i].runtime) : "00:00:00";
+        //             this.setState({backup_timer, backup_online});
+        //         }
+        //     }
+        // }
     };
 
     onMqttState = () => {
@@ -115,8 +126,8 @@ class Ingest extends Component {
 
     getStat = () => {
         const {main_src, backup_src} = this.state.config;
-        mqtt.send("progress", false, "exec/service/"+main_src, 0);
-        mqtt.send("progress", false, "exec/service/"+backup_src, 0);
+        mqtt.send("progress", false, "exec/service/"+main_src+"/enc1", 0);
+        // mqtt.send("progress", false, "exec/service/"+backup_src, 0);
     };
 
     startCapture = () => {
@@ -128,13 +139,13 @@ class Ingest extends Component {
         jsonst.action = "start";
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture, 1);
         setTimeout(() => {
-            if(this.props.capture === "multi") {
-                mqtt.send("start", false, "exec/service/"+arch_src+"/sdi", 2);
-            }
+            // if(this.props.capture === "multi") {
+            //     mqtt.send("start", false, "exec/service/"+arch_src+"/sdi", 2);
+            // }
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi", 2);
-            mqtt.send("start", false, "exec/service/"+backup_src+"/sdi", 2);
+            // mqtt.send("start", false, "exec/service/"+backup_src+"/sdi", 2);
             console.log("-- Set start in WF -- ");
-            this.setWorkflow("start");
+            //this.setWorkflow("start");
         }, 1000);
     };
 
@@ -148,11 +159,11 @@ class Ingest extends Component {
         const {arch_src, main_src, backup_src} = this.state.config;
         this.makeDelay("stop");
         this.setState({line_id: ""})
-        if(this.props.capture === "multi") {
-            mqtt.send("stop", false, "exec/service/"+arch_src+"/sdi", 2);
-        }
+        // if(this.props.capture === "multi") {
+        //     mqtt.send("stop", false, "exec/service/"+arch_src+"/sdi", 2);
+        // }
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi", 2);
-        mqtt.send("stop", false, "exec/service/"+backup_src+"/sdi", 2);
+        // mqtt.send("stop", false, "exec/service/"+backup_src+"/sdi", 2);
         if(jsonst.line.collection_type !== "CONGRESS")
             jsonst.num_prt[jsonst.line.content_type]++;
         jsonst.action = "stop";
@@ -163,7 +174,7 @@ class Ingest extends Component {
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture, 2);
         setTimeout(() => {
             console.log("-- Set stop in WF -- ");
-            this.setWorkflow("stop");
+            //this.setWorkflow("stop");
         }, 1000);
     };
 
@@ -175,11 +186,11 @@ class Ingest extends Component {
         jsonst.start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
         jsonst.action = "start";
         jsonst.isRec = true;
-        mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + arch_src, 2);
+        // mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + arch_src, 2);
         mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src, 2);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture, 1);
         setTimeout(() => {
-            mqtt.send("start", false, "exec/service/"+arch_src+"/sdi", 2);
+            // mqtt.send("start", false, "exec/service/"+arch_src+"/sdi", 2);
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi", 2);
             //FIXME: Here we to simulate choose option in ui
             this.saveLine(jsonst.line_id);
@@ -187,11 +198,11 @@ class Ingest extends Component {
     };
 
     stopPart = () => {
-        const {main_timer} = this.state;
-        if (toSeconds(main_timer) < 60 && window.confirm("WARNING!!! You going to stop part less then 1 minutes?") !== true) {
-            console.log("It's was mistake");
-            return;
-        }
+        // const {main_timer} = this.state;
+        // if (toSeconds(main_timer) < 60 && window.confirm("WARNING!!! You going to stop part less then 1 minutes?") !== true) {
+        //     console.log("It's was mistake");
+        //     return;
+        // }
         console.log("-- :: STOP PART :: --");
         const {jsonst} = this.state;
         const {arch_src, main_src} = this.state.config;
@@ -202,9 +213,9 @@ class Ingest extends Component {
         jsonst.next_part = true;
         jsonst.num_prt.part++;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture, 1);
-        mqtt.send("stop", false, "exec/service/"+arch_src+"/sdi", 2);
+        // mqtt.send("stop", false, "exec/service/"+arch_src+"/sdi", 2);
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi", 2);
-        mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + arch_src, 2);
+        // mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + arch_src, 2);
         mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src, 2);
         setTimeout(() => {
             this.nextPart();
@@ -300,24 +311,24 @@ class Ingest extends Component {
         jsonst.action = "line";
         jsonst.stop_name = jsonst.line.final_name;
         console.log("-- Store line in state: ", jsonst);
-        setIngestState(this.props.capture, jsonst, data => {
-            console.log(" :: setIngestState: ", data);
-        });
+        // setIngestState(this.props.capture, jsonst, data => {
+        //     console.log(" :: setIngestState: ", data);
+        // });
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture, 1);
         //FIXME: Here we must be sure that line already in state!
         console.log("-- Set line in WFDB -- ");
         setTimeout(() => {
-            this.setWorkflow("line");
+            //this.setWorkflow("line");
         }, 3000);
     };
 
     setWorkflow = (action) => {
         const {arch_src, main_src, backup_src} = this.state.config;
         const {capture_id, backup_id} = this.state.jsonst;
-        if(this.props.capture === "multi")
-            mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + arch_src, 1);
+        // if(this.props.capture === "multi")
+        //     mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + arch_src, 1);
         mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + main_src, 1);
-        mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src, 1);
+        // mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src, 1);
     };
 
     runTimer = () => {
@@ -375,7 +386,7 @@ class Ingest extends Component {
                     <Table.Row>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled={backup_online || start_loading}
+                                    disabled={main_online || start_loading}
                                     loading={start_loading}
                                     positive
                                     onClick={this.startCapture} >
@@ -399,7 +410,7 @@ class Ingest extends Component {
                         </Table.Cell>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled={line_id === "" || !backup_online || stop_loading}
+                                    disabled={line_id === "" || !main_online || stop_loading}
                                     loading={stop_loading}
                                     negative
                                     onClick={this.stopCapture} >
@@ -415,10 +426,10 @@ class Ingest extends Component {
                     className="preset"
                     error={!line_id}
                     scrolling={false}
-                    placeholder={backup_online ? "--- SET PRESET ---" : "--- PRESS START ---"}
+                    placeholder={main_online ? "--- SET PRESET ---" : "--- PRESS START ---"}
                     selection
                     value={line_id}
-                    disabled={jsonst?.next_part || !backup_online}
+                    disabled={jsonst?.next_part || !main_online}
                     options={options}
                     onChange={(e,{value}) => this.saveLine(value)}
                 >
@@ -437,4 +448,4 @@ class Ingest extends Component {
     }
 }
 
-export default Ingest;
+export default IngestTest;

@@ -154,6 +154,19 @@ export const getConfig = (capture) => {
             ja_id: 22,
         }
     }
+    if(capture === 'testcap') {
+        config = {
+            capture,
+            header: 'TEST Capture',
+            arch_src: "testcap",
+            main_src: "testcap",
+            backup_src: "testcap",
+            main_ip: MLTCAP,
+            backup_ip: MLTBACKUP,
+            jv_id: 511,
+            ja_id: 21,
+        }
+    }
     config.user = {id: capture, email: capture+"@bbdomain.org"};
     mqtt.setCapture(capture);
     return config

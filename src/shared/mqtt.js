@@ -47,9 +47,9 @@ class MqttMsg {
         this.mq.on('disconnect', (data) => console.error('[mqtt] Error: ', data));
     }
 
-    join = (topic) => {
+    join = (topic, qos) => {
         console.debug("[mqtt] Subscribe to: ", topic)
-        let options = {qos: 1, nl: false}
+        let options = {qos, nl: false}
         this.mq.subscribe(topic, {...options}, (err) => {
             err && console.error('[mqtt] Error: ', err);
         })
@@ -63,10 +63,10 @@ class MqttMsg {
         })
     }
 
-    send = (message, retain, topic) => {
+    send = (message, retain, topic, qos) => {
         if(message !== "status")
             console.debug("[mqtt] Send data on topic: ", topic, message)
-        let options = {qos: 1, retain};
+        let options = {qos, retain};
         this.mq.publish(topic, message, {...options}, (err) => {
             err && console.error('[mqtt] Error: ',err);
         })
@@ -74,14 +74,16 @@ class MqttMsg {
 
     watch = (callback, stat) => {
         this.mq.on('message',  (topic, data, packet) => {
+            //console.debug("[mqtt] message: ", JSON.parse(data.toString()), ", on topic: ", topic);
             const topic_state = 'workflow/state/capture/' + this.capture
             if (topic_state === topic) {
                 console.debug("[mqtt] State from topic: ", topic);
                 this.mq.emit('state', JSON.parse(data.toString()));
             } else {
                 let message = stat ? data.toString() : JSON.parse(data.toString());
-                if(message.action !== "status")
-                    console.debug("[mqtt] message: ", message, ", on topic: ", topic);
+                if(message.action === "status")
+                    return
+                console.debug("[mqtt] message: ", message, ", on topic: ", topic);
                 callback(message, topic)
             }
         })
