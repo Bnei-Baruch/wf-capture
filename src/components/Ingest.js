@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import {Segment, Button, Table, Message, Header, Dropdown, Divider} from 'semantic-ui-react';
 import './Ingest.css';
-import {getConfig, getIngestState, getData, newCaptureState, PRESETS, streamVisualizer, toHms, toSeconds, setIngestState} from "../shared/tools";
+import {getConfig, getIngestState, getData, newCaptureState, PRESETS, streamVisualizer, toSeconds, setIngestState} from "../shared/tools";
 import moment from "moment";
 import mqtt from "../shared/mqtt";
 import media from "../shared/media";
@@ -76,7 +76,6 @@ class Ingest extends Component {
             mqtt.join(topic , 2);
             mqtt.join('workflow/service/data/#', 2);
             mqtt.join('workflow/state/capture/'+this.props.capture, 2);
-            this.runTimer();
             mqtt.watch((message, topic) => {
                 this.onMqttMessage(message, topic);
             }, false)
@@ -85,23 +84,19 @@ class Ingest extends Component {
     };
 
     onMqttMessage = (message, topic) => {
-        console.log("[mqtt] message: ", message);
         const src = topic.split("/")[3]
         const {main_src,backup_src} = this.state.config;
         let services = message.data;
-        if(services) {
-            for(let i=0; i<services.length; i++) {
-                if(main_src === src) {
-                    let main_online = services[i].alive;
-                    let main_timer = main_online ? toHms(services[i].runtime) : "00:00:00";
-                    this.setState({main_timer, main_online});
-                }
-                if(backup_src === src) {
-                    let backup_online = services[i].alive;
-                    let backup_timer = backup_online ? toHms(services[i].runtime) : "00:00:00";
-                    this.setState({backup_timer, backup_online});
-                }
-            }
+
+        if(main_src === src) {
+            let main_online = message.message === "On";
+            let main_timer = main_online && services?.out_time ? services.out_time.split('.')[0] : "00:00:00";
+            this.setState({main_timer, main_online});
+        }
+        if(backup_src === src) {
+            let backup_online = message.message === "On";
+            let backup_timer = backup_online && services?.out_time ? services.out_time.split('.')[0] : "00:00:00";
+            this.setState({backup_timer, backup_online});
         }
     };
 
@@ -375,7 +370,7 @@ class Ingest extends Component {
                     <Table.Row>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled={backup_online || start_loading}
+                                    disabled={next_loading || backup_online || start_loading}
                                     loading={start_loading}
                                     positive
                                     onClick={this.startCapture} >

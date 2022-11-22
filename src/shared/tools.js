@@ -176,7 +176,7 @@ export const newCaptureState = (jsonst) => {
     let capture_id = "c"+moment().format('x');
     let backup_id = "c"+(Number(moment().format('x'))+3)
     let start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
-    jsonst = {...jsonst, backup_id, capture_id, start_name, next_part: false, isRec: false};
+    jsonst = {...jsonst, backup_id, capture_id, start_name, next_part: false, isRec: true};
     jsonst = setDate(jsonst);
     return jsonst
 }
