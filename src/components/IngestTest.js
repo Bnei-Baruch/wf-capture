@@ -90,15 +90,26 @@ class IngestTest extends Component {
         const {main_src,backup_src} = this.state.config;
         let services = message.data;
 
-        if(message.message === "On") {
-            let main_online = true;
-            let main_timer = main_online ? services.out_time.split('.')[0] : "00:00:00";
-            this.setState({main_timer, main_online});
-        } else {
-            let main_online = false;
-            let main_timer = "00:00:00";
+        if(main_src === src) {
+            let main_online = message.message === "On";
+            let main_timer = main_online && services?.out_time ? services.out_time.split('.')[0] : "00:00:00";
             this.setState({main_timer, main_online});
         }
+        if(backup_src === src) {
+            let backup_online = message.message === "On";
+            let backup_timer = backup_online && services?.out_time ? services.out_time.split('.')[0] : "00:00:00";
+            this.setState({backup_timer, backup_online});
+        }
+
+        // if(message.message === "On") {
+        //     let main_online = true;
+        //     let main_timer = main_online && services?.out_time ? services.out_time.split('.')[0] : "00:00:00";
+        //     this.setState({main_timer, main_online});
+        // } else {
+        //     let main_online = false;
+        //     let main_timer = "00:00:00";
+        //     this.setState({main_timer, main_online});
+        // }
 
         // if(services) {
         //     for(let i=0; i<services.length; i++) {
@@ -187,7 +198,7 @@ class IngestTest extends Component {
         jsonst.action = "start";
         jsonst.isRec = true;
         // mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + arch_src, 2);
-        mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src, 2);
+        //mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src, 2);
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture, 1);
         setTimeout(() => {
             // mqtt.send("start", false, "exec/service/"+arch_src+"/sdi", 2);
@@ -216,7 +227,7 @@ class IngestTest extends Component {
         // mqtt.send("stop", false, "exec/service/"+arch_src+"/sdi", 2);
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi", 2);
         // mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + arch_src, 2);
-        mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src, 2);
+        //mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src, 2);
         setTimeout(() => {
             this.nextPart();
         }, 3000);
@@ -225,7 +236,7 @@ class IngestTest extends Component {
     nextPart = () => {
         setTimeout(() => {
             this.state.main_online ? this.nextPart() : this.startPart();
-        }, 3000);
+        }, 1000);
     };
 
     setOptions = (jsonst, presets) => {
@@ -345,7 +356,7 @@ class IngestTest extends Component {
         this.setState({[`${key}_loading`]: true});
         setTimeout(() => {
             this.setState({[`${key}_loading`]: false});
-        }, 7000);
+        }, 10000);
     };
 
     render() {
@@ -386,7 +397,7 @@ class IngestTest extends Component {
                     <Table.Row>
                         <Table.Cell>
                             <Button fluid size='huge'
-                                    disabled={main_online || start_loading}
+                                    disabled={next_loading || main_online || start_loading}
                                     loading={start_loading}
                                     positive
                                     onClick={this.startCapture} >

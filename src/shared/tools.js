@@ -158,9 +158,9 @@ export const getConfig = (capture) => {
         config = {
             capture,
             header: 'TEST Capture',
-            arch_src: "testcap",
-            main_src: "testcap",
-            backup_src: "testcap",
+            arch_src: "testmaincap",
+            main_src: "testmaincap",
+            backup_src: "testmaincap",
             main_ip: MLTCAP,
             backup_ip: MLTBACKUP,
             jv_id: 511,
@@ -176,7 +176,7 @@ export const newCaptureState = (jsonst) => {
     let capture_id = "c"+moment().format('x');
     let backup_id = "c"+(Number(moment().format('x'))+3)
     let start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
-    jsonst = {...jsonst, backup_id, capture_id, start_name, next_part: false, isRec: true};
+    jsonst = {...jsonst, backup_id, capture_id, start_name, next_part: false, isRec: false};
     jsonst = setDate(jsonst);
     return jsonst
 }
