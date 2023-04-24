@@ -125,6 +125,8 @@ class Ingest extends Component {
         setTimeout(() => {
             if(this.props.capture === "multi") {
                 mqtt.send("start", false, "exec/service/"+arch_src+"/sdi", 2);
+                // mqtt.send("start", false, "exec/service/livecap1/sdi", 1);
+                // mqtt.send("start", false, "exec/service/livecap2/sdi", 1);
             }
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi", 2);
             mqtt.send("start", false, "exec/service/"+backup_src+"/sdi", 2);
@@ -145,6 +147,8 @@ class Ingest extends Component {
         this.setState({line_id: ""})
         if(this.props.capture === "multi") {
             mqtt.send("stop", false, "exec/service/"+arch_src+"/sdi", 2);
+            // mqtt.send("stop", false, "exec/service/livecap1/sdi", 1);
+            // mqtt.send("stop", false, "exec/service/livecap2/sdi", 1);
         }
         mqtt.send("stop", false, "exec/service/"+main_src+"/sdi", 2);
         mqtt.send("stop", false, "exec/service/"+backup_src+"/sdi", 2);
@@ -197,11 +201,11 @@ class Ingest extends Component {
         jsonst.next_part = true;
         jsonst.num_prt.part++;
         mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture, 1);
-        mqtt.send("stop", false, "exec/service/"+arch_src+"/sdi", 2);
-        mqtt.send("stop", false, "exec/service/"+main_src+"/sdi", 2);
-        mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + arch_src, 2);
-        mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src, 2);
         setTimeout(() => {
+            mqtt.send("stop", false, "exec/service/"+arch_src+"/sdi", 2);
+            mqtt.send("stop", false, "exec/service/"+main_src+"/sdi", 2);
+            mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + arch_src, 2);
+            mqtt.send(JSON.stringify({action: "stop", id: capture_id}), false, "workflow/service/capture/" + main_src, 2);
             this.nextPart();
         }, 3000);
     };

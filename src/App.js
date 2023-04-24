@@ -9,8 +9,8 @@ class App extends Component {
   render() {
     return (
         <Fragment>
-            {/*<Ingest capture={window.location.pathname.split('/')[1]} />*/}
-            <IngestTest capture="testcap" />
+            <Ingest capture={window.location.pathname.split('/')[1]} />
+            {/*<IngestTest capture="testcap" />*/}
         </Fragment>
     );
   }
