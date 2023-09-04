@@ -1,4 +1,4 @@
-import mqtt from 'mqtt';
+import * as mqtt from 'mqtt';
 import {MQTT_LCL_URL, MQTT_EXT_URL, randomString} from "./tools";
 
 class MqttMsg {
