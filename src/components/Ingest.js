@@ -176,9 +176,9 @@ class Ingest extends Component {
         jsonst.start_name = moment().format('YYYY-MM-DD_HH-mm-ss');
         jsonst.action = "start";
         jsonst.isRec = true;
+        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture, 1);
         mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + arch_src, 1);
         mqtt.send(JSON.stringify({action: "start", id: jsonst.capture_id}), false, "workflow/service/capture/" + main_src, 1);
-        mqtt.send(JSON.stringify(jsonst), true, "workflow/state/capture/" + this.props.capture, 1);
         setTimeout(() => {
             mqtt.send("start", false, "exec/service/"+arch_src+"/sdi", 1);
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi", 1);
