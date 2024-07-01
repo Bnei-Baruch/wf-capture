@@ -129,10 +129,12 @@ class Ingest extends Component {
                 // mqtt.send("start", false, "exec/service/livecap2/sdi", 1);
             }
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi", 1);
-            mqtt.send("start", false, "exec/service/"+backup_src+"/sdi", 1);
+            setTimeout(() => {
+                mqtt.send("start", false, "exec/service/"+backup_src+"/sdi", 1);
+            },1000)
             console.log("-- Set start in WF -- ");
             this.setWorkflow("start");
-        }, 1000);
+        }, 3000);
     };
 
     stopCapture = () => {
@@ -163,7 +165,7 @@ class Ingest extends Component {
         setTimeout(() => {
             console.log("-- Set stop in WF -- ");
             this.setWorkflow("stop");
-        }, 1000);
+        }, 3000);
     };
 
     startPart = () => {
