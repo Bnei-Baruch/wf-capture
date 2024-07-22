@@ -313,10 +313,12 @@ class Ingest extends Component {
     };
 
     setWorkflow = (action) => {
-        const {arch_src, main_src, backup_src} = this.state.config;
+        const {arch_src, archbackup_src, main_src, backup_src} = this.state.config;
         const {capture_id, backup_id} = this.state.jsonst;
-        if(this.props.capture === "multi")
+        if(this.props.capture === "multi") {
             mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + arch_src, 1);
+            mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + archbackup_src, 1);
+        }
         mqtt.send(JSON.stringify({action, id: capture_id}), false, "workflow/service/capture/" + main_src, 1);
         mqtt.send(JSON.stringify({action, id: backup_id}), false, "workflow/service/capture/" + backup_src, 1);
     };
