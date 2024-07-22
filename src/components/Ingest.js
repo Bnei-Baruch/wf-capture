@@ -116,7 +116,7 @@ class Ingest extends Component {
 
     startCapture = () => {
         console.log("-- :: START CAPTURE :: --");
-        const {arch_src, main_src, backup_src} = this.state.config;
+        const {arch_src, archbackup_src, main_src, backup_src} = this.state.config;
         this.makeDelay("start");
         let {jsonst} = this.state;
         jsonst = newCaptureState(jsonst);
@@ -125,13 +125,12 @@ class Ingest extends Component {
         setTimeout(() => {
             if(this.props.capture === "multi") {
                 mqtt.send("start", false, "exec/service/"+arch_src+"/sdi", 1);
+                mqtt.send("start", false, "exec/service/"+archbackup_src+"/sdi", 1);
                 // mqtt.send("start", false, "exec/service/livecap1/sdi", 1);
                 // mqtt.send("start", false, "exec/service/livecap2/sdi", 1);
             }
             mqtt.send("start", false, "exec/service/"+main_src+"/sdi", 1);
-            setTimeout(() => {
-                mqtt.send("start", false, "exec/service/"+backup_src+"/sdi", 1);
-            },1000)
+            mqtt.send("start", false, "exec/service/"+backup_src+"/sdi", 1);
             console.log("-- Set start in WF -- ");
             this.setWorkflow("start");
         }, 3000);
@@ -144,11 +143,12 @@ class Ingest extends Component {
             return;
         }
         console.log("-- :: STOP CAPTURE :: --");
-        const {arch_src, main_src, backup_src} = this.state.config;
+        const {arch_src, archbackup_src, main_src, backup_src} = this.state.config;
         this.makeDelay("stop");
         this.setState({line_id: ""})
         if(this.props.capture === "multi") {
             mqtt.send("stop", false, "exec/service/"+arch_src+"/sdi", 1);
+            mqtt.send("stop", false, "exec/service/"+archbackup_src+"/sdi", 1);
             // mqtt.send("stop", false, "exec/service/livecap1/sdi", 1);
             // mqtt.send("stop", false, "exec/service/livecap2/sdi", 1);
         }
