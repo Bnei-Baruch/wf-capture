@@ -214,7 +214,9 @@ class Ingest extends Component {
 
     nextPart = () => {
         setTimeout(() => {
-            this.state.main_online ? this.nextPart() : this.startPart();
+            //FIXME: Here we need to get exec state and not progress state
+            //this.state.main_online ? this.nextPart() : this.startPart();
+            this.startPart();
         }, 3000);
     };
 
